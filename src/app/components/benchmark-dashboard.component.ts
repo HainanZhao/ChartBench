@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { TimeSeriesDataService, BenchmarkDataset } from '../services/time-series-data.service';
 import { PerformanceService, BenchmarkResult } from '../services/performance.service';
 import { EchartsComponent } from '../components/echarts.component';
+import { LightweightChartsComponent } from '../components/lightweight-charts.component';
+import { LightningChartsComponent } from '../components/lightning-charts.component';
 
 @Component({
   selector: 'app-benchmark-dashboard',
@@ -11,7 +13,9 @@ import { EchartsComponent } from '../components/echarts.component';
   imports: [
     CommonModule, 
     FormsModule, 
-    EchartsComponent
+    EchartsComponent,
+    LightweightChartsComponent,
+    LightningChartsComponent
   ],
   template: `
     <div class="dashboard">
@@ -358,7 +362,7 @@ export class BenchmarkDashboardComponent implements OnInit {
     this.progressPercentage = 0;
     this.performanceService.clearResults();
 
-    const testSizes = [1000, 5000, 10000, 25000, 50000];
+    const testSizes = [1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000];
     const totalTests = testSizes.length;
 
     for (let i = 0; i < testSizes.length; i++) {

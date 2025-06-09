@@ -32,6 +32,9 @@ import { LightningChartsComponent } from '../components/lightning-charts.compone
               {{ preset.name }}
             </option>
           </select>
+          <div class="dataset-warning" *ngIf="selectedDatasetSize >= 250000">
+            ⚠️ Large dataset selected - rendering may take time
+          </div>
         </div>
 
         <div class="control-group">
@@ -39,6 +42,9 @@ import { LightningChartsComponent } from '../components/lightning-charts.compone
             {{ isRunning ? 'Running...' : 'Run Benchmark' }}
           </button>
           <button (click)="clearResults()" class="btn btn-secondary">Clear Results</button>
+          <div class="benchmark-info">
+            <small>Note: Benchmark tests datasets from 1K to 500K points</small>
+          </div>
         </div>
       </div>
 
@@ -158,6 +164,26 @@ import { LightningChartsComponent } from '../components/lightning-charts.compone
     .control-group label {
       font-weight: bold;
       color: #333;
+    }
+
+    .dataset-warning {
+      color: #ff6b35;
+      font-size: 12px;
+      font-weight: bold;
+      margin-top: 5px;
+      padding: 4px 8px;
+      background: #fff3e0;
+      border-radius: 4px;
+      border: 1px solid #ffcc80;
+    }
+
+    .benchmark-info {
+      margin-top: 5px;
+    }
+
+    .benchmark-info small {
+      color: #666;
+      font-style: italic;
     }
 
     select {
@@ -382,7 +408,7 @@ export class BenchmarkDashboardComponent implements OnInit {
     this.progressPercentage = 0;
     this.performanceService.clearResults();
 
-    const testSizes = [1000, 5000, 10000, 25000, 50000];
+    const testSizes = [1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000];
     const totalTests = testSizes.length * 3; // 3 chart libraries
     let completedTests = 0;
 
@@ -402,7 +428,9 @@ export class BenchmarkDashboardComponent implements OnInit {
 
       if (this.echartsComponent) {
         this.echartsComponent.updateChart(testDataset);
-        await this.delay(200);
+        // Increase delay for larger datasets to ensure proper rendering
+        const renderDelay = size >= 100000 ? 1000 : size >= 50000 ? 500 : 200;
+        await this.delay(renderDelay);
       }
       completedTests++;
 
@@ -413,7 +441,9 @@ export class BenchmarkDashboardComponent implements OnInit {
 
       if (this.lightweightChartsComponent) {
         this.lightweightChartsComponent.updateChart(testDataset);
-        await this.delay(200);
+        // Increase delay for larger datasets to ensure proper rendering
+        const renderDelay = size >= 100000 ? 1000 : size >= 50000 ? 500 : 200;
+        await this.delay(renderDelay);
       }
       completedTests++;
 
@@ -424,7 +454,9 @@ export class BenchmarkDashboardComponent implements OnInit {
 
       if (this.lightningChartsComponent) {
         this.lightningChartsComponent.updateChart(testDataset);
-        await this.delay(200);
+        // Increase delay for larger datasets to ensure proper rendering
+        const renderDelay = size >= 100000 ? 1000 : size >= 50000 ? 500 : 200;
+        await this.delay(renderDelay);
       }
       completedTests++;
     }

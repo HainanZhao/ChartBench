@@ -61,6 +61,7 @@ export class LightningChartsComponent implements OnInit, OnDestroy {
   @Input() dataset: BenchmarkDataset | null = null;
   @Input() height: number = 400;
   
+  private readonly LIGHTNING_CHART_LICENSE = '0002-n0i9AP8MN/ezP+gV3RZRzNiQvQvBKwBJvTnrFTHppybuCwWuickxBJV+q3qyoeEBGSE4hS0aeo3pySDywrb/iIsl-MEUCIAiJOU3BrUq71LqSlRAIFAI0dKK05qBRIJYHFmBoOoIHAiEA4Y55O1QpeuEkiuVktPGLauOHc1TzxNu85/vz/eNscz8=';
   private chart: ChartXY | null = null;
   private lineSeries: LineSeries | null = null;
   lastMetrics: any = null;
@@ -80,7 +81,14 @@ export class LightningChartsComponent implements OnInit, OnDestroy {
   private initChart(): void {
     const initStartTime = this.performanceService.startTimer();
     
-    this.chart = lightningChart().ChartXY({
+    // Apply license key when initializing LightningChart
+    this.chart = lightningChart({
+      license: this.LIGHTNING_CHART_LICENSE, 
+      licenseInformation: {
+        appTitle: "LightningChart JS Trial",
+        company: "LightningChart Ltd."
+    },
+    }).ChartXY({
       container: this.chartContainer.nativeElement
     });
     

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { createChart, IChartApi, ISeriesApi, LineData, UTCTimestamp } from 'lightweight-charts';
 import { BenchmarkDataset } from '../services/time-series-data.service';
 import { PerformanceService } from '../services/performance.service';
+import { ChartStyleService } from '../services/chart-style.service';
 
 @Component({
   selector: 'app-lightweight-charts-benchmark',
@@ -29,10 +30,12 @@ import { PerformanceService } from '../services/performance.service';
       border: 1px solid #ddd;
       border-radius: 8px;
       background: white;
+      width: 860px; /* Consistent width including padding */
     }
     
     .chart {
       width: 100%;
+      min-height: 400px;
     }
     
     .chart-info {
@@ -41,6 +44,7 @@ import { PerformanceService } from '../services/performance.service';
       margin-bottom: 10px;
       font-size: 0.9em;
       color: #666;
+      flex-wrap: wrap;
     }
     
     .chart-title {
@@ -48,11 +52,15 @@ import { PerformanceService } from '../services/performance.service';
       font-size: 14px;
       margin-bottom: 10px;
       color: #333;
+      font-weight: 500;
     }
     
     h3 {
       margin: 0 0 10px 0;
       color: #333;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 600;
     }
   `]
 })
@@ -65,7 +73,10 @@ export class LightweightChartsComponent implements OnInit, OnDestroy {
   private lineSeries: ISeriesApi<'Line'> | null = null;
   lastMetrics: any = null;
   
-  constructor(public performanceService: PerformanceService) {}
+  constructor(
+    public performanceService: PerformanceService,
+    private chartStyleService: ChartStyleService
+  ) {}
   
   ngOnInit(): void {
     this.initChart();
@@ -79,29 +90,62 @@ export class LightweightChartsComponent implements OnInit, OnDestroy {
   
   private initChart(): void {
     const initStartTime = this.performanceService.startTimer();
+    const styleConfig = this.chartStyleService.getStyleConfig();
     
-    this.chart = createChart(this.chartContainer.nativeElement, {
-      width: this.chartContainer.nativeElement.clientWidth,
+    // Set container height explicitly
+    const container = this.chartContainer.nativeElement;
+    container.style.height = `${this.height}px`;
+    
+    this.chart = createChart(container, {
+      width: container.clientWidth || this.chartStyleService.getCommonChartWidth(),
       height: this.height,
       layout: {
-        background: { color: '#ffffff' },
-        textColor: '#333',
+        background: { color: styleConfig.colors.background },
+        textColor: styleConfig.colors.text,
       },
       grid: {
-        vertLines: { color: '#e1e1e1' },
-        horzLines: { color: '#e1e1e1' },
+        vertLines: { color: styleConfig.colors.grid },
+        horzLines: { color: styleConfig.colors.grid },
       },
       timeScale: {
-        borderColor: '#cccccc',
+        borderColor: styleConfig.colors.border,
+        timeVisible: true,
+        secondsVisible: true,
       },
       rightPriceScale: {
-        borderColor: '#cccccc',
+        borderColor: styleConfig.colors.border,
+        scaleMargins: {
+          top: 0.1,
+          bottom: 0.1,
+        },
+      },
+      leftPriceScale: {
+        visible: false,
+      },
+      crosshair: {
+        mode: 1, // Normal crosshair mode
+        vertLine: {
+          color: styleConfig.colors.border,
+          width: 1,
+          style: 3,
+          visible: true,
+          labelVisible: true,
+        },
+        horzLine: {
+          color: styleConfig.colors.border,
+          width: 1,
+          style: 3,
+          visible: true,
+          labelVisible: true,
+        },
       },
     });
     
     this.lineSeries = this.chart.addLineSeries({
-      color: '#2196F3',
-      lineWidth: 1,
+      color: styleConfig.colors.primary,
+      lineWidth: styleConfig.dimensions.lineWidth as any,
+      priceLineVisible: false,
+      lastValueVisible: false,
     });
     
     const initTime = this.performanceService.endTimer(initStartTime);

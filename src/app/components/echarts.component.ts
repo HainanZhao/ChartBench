@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import * as echarts from 'echarts';
 import { BenchmarkDataset } from '../services/time-series-data.service';
 import { PerformanceService } from '../services/performance.service';
+import { ChartStyleService } from '../services/chart-style.service';
 
 @Component({
   selector: 'app-echarts-benchmark',
@@ -19,7 +20,7 @@ import { PerformanceService } from '../services/performance.service';
       <div class="chart-title" *ngIf="dataset">
         {{ dataset.name }} ({{ dataset.pointCount.toLocaleString() }} points)
       </div>
-      <div #chartContainer class="chart"></div>
+      <div #chartContainer class="chart" [style.height.px]="height"></div>
     </div>
   `,
   styles: [`
@@ -29,13 +30,12 @@ import { PerformanceService } from '../services/performance.service';
       border: 1px solid #ddd;
       border-radius: 8px;
       background: white;
+      width: 860px; /* Consistent width including padding */
     }
     
     .chart {
       width: 100%;
-      height: 400px;
-      border: 1px solid #eee;
-      background-color: #f9f9f9;
+      min-height: 400px;
     }
     
     .chart-info {
@@ -44,6 +44,7 @@ import { PerformanceService } from '../services/performance.service';
       margin-bottom: 10px;
       font-size: 0.9em;
       color: #666;
+      flex-wrap: wrap;
     }
     
     .chart-title {
@@ -51,11 +52,15 @@ import { PerformanceService } from '../services/performance.service';
       font-size: 14px;
       margin-bottom: 10px;
       color: #333;
+      font-weight: 500;
     }
     
     h3 {
       margin: 0 0 10px 0;
       color: #333;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 600;
     }
   `]
 })
@@ -67,7 +72,10 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
   private chart: echarts.ECharts | null = null;
   lastMetrics: any = null;
   
-  constructor(public performanceService: PerformanceService) {}
+  constructor(
+    public performanceService: PerformanceService,
+    private chartStyleService: ChartStyleService
+  ) {}
   
   ngOnInit(): void {
     console.log('ECharts ngOnInit called');
@@ -100,6 +108,10 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
 
     const initStartTime = this.performanceService.startTimer();
     const container = this.chartContainer.nativeElement;
+    
+    // Set container height to match input
+    container.style.height = `${this.height}px`;
+    
     console.log('ECharts initChart: Container details', {
       width: container.offsetWidth,
       height: container.offsetHeight
@@ -138,35 +150,82 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
     console.log('ECharts renderChart: Converted data sample:', data.slice(0, 3));
     console.log('ECharts renderChart: Time range from', new Date(data[0][0]).toISOString(), 'to', new Date(data[data.length-1][0]).toISOString());
     
+    const styleConfig = this.chartStyleService.getStyleConfig();
+    
     const option = {
       title: {
-        text: this.dataset.name
+        show: false // Hide title to match other charts
       },
       tooltip: {
         trigger: 'axis',
         formatter: (params: any) => {
           if (params && params.length > 0) {
             const point = params[0];
-            const date = new Date(point.data[0]);
-            return `Time: ${date.toLocaleString()}<br/>Value: ${point.data[1].toFixed(2)}`;
+            const timeStr = this.chartStyleService.formatTimeTooltip(point.data[0]);
+            const valueStr = this.chartStyleService.formatValueTooltip(point.data[1]);
+            return `Time: ${timeStr}<br/>Value: ${valueStr}`;
           }
           return '';
         }
       },
+      grid: {
+        left: styleConfig.dimensions.padding.left,
+        right: styleConfig.dimensions.padding.right,
+        top: styleConfig.dimensions.padding.top,
+        bottom: styleConfig.dimensions.padding.bottom,
+        containLabel: false
+      },
       xAxis: {
-        type: 'time'
+        type: 'time',
+        axisLabel: {
+          formatter: (value: number) => {
+            const date = new Date(value);
+            return styleConfig.formatting.timeFormat(date);
+          },
+          color: styleConfig.colors.text
+        },
+        axisLine: {
+          lineStyle: {
+            color: styleConfig.colors.border
+          }
+        },
+        splitLine: {
+          lineStyle: {
+            color: styleConfig.colors.grid
+          }
+        }
       },
       yAxis: {
-        type: 'value'
+        type: 'value',
+        name: 'Value',
+        nameLocation: 'middle',
+        nameGap: 40,
+        nameTextStyle: {
+          color: styleConfig.colors.text
+        },
+        axisLabel: {
+          color: styleConfig.colors.text
+        },
+        axisLine: {
+          lineStyle: {
+            color: styleConfig.colors.border
+          }
+        },
+        splitLine: {
+          lineStyle: {
+            color: styleConfig.colors.grid
+          }
+        }
       },
       series: [{
         data: data,
         type: 'line',
         symbol: 'none',
         lineStyle: {
-          width: 2,
-          color: '#2196F3'
-        }
+          width: styleConfig.dimensions.lineWidth,
+          color: styleConfig.colors.primary
+        },
+        smooth: false
       }]
     };
     
