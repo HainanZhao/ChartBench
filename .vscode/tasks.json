@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"command": "ng build",
+			"group": "build",
+			"isBackground": false,
+			"label": "Build Production",
+			"problemMatcher": [
+				"$eslint-stylish"
+			],
+			"type": "shell"
+		}
+	]
+}

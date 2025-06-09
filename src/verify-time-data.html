@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Time Data Verification</title>
+</head>
+<body>
+    <h1>Chart Time Data Verification</h1>
+    <div id="output"></div>
+    
+    <script>
+        // Simulate the same data generation as the service
+        function generateTimeSeriesData(pointCount) {
+            const points = [];
+            const startTime = Date.now() - (pointCount * 60000); // Start from pointCount minutes ago
+            
+            let lastValue = 100; // Starting value
+            
+            for (let i = 0; i < pointCount; i++) {
+                const time = startTime + (i * 60000); // 1 minute intervals
+                
+                // Generate realistic stock-like data with random walk + trend
+                const randomChange = (Math.random() - 0.5) * 2; // Random change between -1 and 1
+                const trend = Math.sin(i / pointCount * Math.PI * 2) * 0.1; // Sine wave trend
+                const volatility = Math.random() * 0.5; // Additional volatility
+                
+                lastValue = lastValue + randomChange + trend + volatility;
+                
+                // Ensure value doesn't go negative
+                lastValue = Math.max(lastValue, 1);
+                
+                points.push({
+                    time,
+                    value: parseFloat(lastValue.toFixed(2))
+                });
+            }
+            
+            return points;
+        }
+        
+        // Test different time format conversions
+        const testData = generateTimeSeriesData(10);
+        
+        let output = '<h2>Generated Test Data (first 5 points):</h2>';
+        output += '<pre>';
+        
+        testData.slice(0, 5).forEach((point, index) => {
+            output += `Point ${index + 1}:\n`;
+            output += `  Original timestamp: ${point.time}\n`;
+            output += `  Date (for ECharts): ${new Date(point.time).toISOString()}\n`;
+            output += `  UTC seconds (for Lightweight): ${Math.floor(point.time / 1000)}\n`;
+            output += `  Date from UTC seconds: ${new Date(Math.floor(point.time / 1000) * 1000).toISOString()}\n`;
+            output += `  Value: ${point.value}\n\n`;
+        });
+        
+        output += '</pre>';
+        
+        output += '<h2>Time Range Summary:</h2>';
+        output += `<p>Start Time: ${new Date(testData[0].time).toISOString()}</p>`;
+        output += `<p>End Time: ${new Date(testData[testData.length - 1].time).toISOString()}</p>`;
+        output += `<p>Duration: ${(testData[testData.length - 1].time - testData[0].time) / 60000} minutes</p>`;
+        
+        document.getElementById('output').innerHTML = output;
+    </script>
+</body>
+</html>
