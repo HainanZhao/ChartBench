@@ -130,7 +130,7 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
     }
   }
   
-  renderChart(): void {
+  async renderChart(): Promise<void> {
     if (!this.chart || !this.dataset) {
       return;
     }
@@ -227,31 +227,38 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
         smooth: false
       }]
     };
-    
-    this.chart.setOption(option);
+
+    // Set options and wait for the next frame to ensure rendering is complete
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        this.chart?.setOption(option);
+        // Wait for another frame to ensure the rendering is complete
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      });
+    });
     
     const renderTime = this.performanceService.endTimer(renderStartTime);
     
-    // Record performance metrics
     this.lastMetrics = {
       chartLibrary: 'ECharts',
       pointCount: this.dataset.pointCount,
       renderTime,
-      initTime: 0, // Will be set by initChart if available
+      initTime: 0,
       memoryUsage: this.performanceService.getMemoryUsage(),
       timestamp: Date.now()
     };
     
     this.performanceService.recordMetrics(this.lastMetrics);
-    
-    console.log('ECharts renderChart: Chart rendered');
   }
-  
-  updateChart(newDataset: BenchmarkDataset): void {
+
+  async updateChart(newDataset: BenchmarkDataset): Promise<void> {
     this.dataset = newDataset;
+    
     if (this.chart) {
       const updateStartTime = this.performanceService.startTimer();
-      this.renderChart();
+      await this.renderChart();
       const updateTime = this.performanceService.endTimer(updateStartTime);
       
       if (this.lastMetrics) {

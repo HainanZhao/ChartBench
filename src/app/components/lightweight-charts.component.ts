@@ -154,7 +154,7 @@ export class LightweightChartsComponent implements OnInit, OnDestroy {
     }
   }
   
-  renderChart(initTime?: number): void {
+  async renderChart(initTime?: number): Promise<void> {
     if (!this.lineSeries || !this.dataset) return;
     
     const renderStartTime = this.performanceService.startTimer();
@@ -168,10 +168,18 @@ export class LightweightChartsComponent implements OnInit, OnDestroy {
     console.log('Lightweight Charts: Sample converted data:', data.slice(0, 3));
     console.log('Lightweight Charts: Time range from', new Date(Number(data[0].time) * 1000).toISOString(), 'to', new Date(Number(data[data.length-1].time) * 1000).toISOString());
     
-    this.lineSeries.setData(data);
-    
-    // Fit content to show all data
-    this.chart?.timeScale().fitContent();
+    // Set data and wait for rendering to complete
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        this.lineSeries?.setData(data);
+        // Fit content to show all data
+        this.chart?.timeScale().fitContent();
+        // Wait for another frame to ensure the rendering is complete
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      });
+    });
     
     const renderTime = this.performanceService.endTimer(renderStartTime);
     
@@ -187,12 +195,12 @@ export class LightweightChartsComponent implements OnInit, OnDestroy {
     this.performanceService.recordMetrics(this.lastMetrics);
   }
   
-  updateChart(newDataset: BenchmarkDataset): void {
+  async updateChart(newDataset: BenchmarkDataset): Promise<void> {
     this.dataset = newDataset;
     
     if (this.lineSeries) {
       const updateStartTime = this.performanceService.startTimer();
-      this.renderChart();
+      await this.renderChart();
       const updateTime = this.performanceService.endTimer(updateStartTime);
       
       if (this.lastMetrics) {

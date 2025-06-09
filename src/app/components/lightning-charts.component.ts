@@ -112,7 +112,7 @@ export class LightningChartsComponent implements OnInit, OnDestroy {
     }
   }
   
-  renderChart(initTime?: number): void {
+  async renderChart(initTime?: number): Promise<void> {
     if (!this.lineSeries || !this.dataset) return;
     
     const renderStartTime = this.performanceService.startTimer();
@@ -126,12 +126,26 @@ export class LightningChartsComponent implements OnInit, OnDestroy {
     console.log('LightningChart: Sample converted data:', data.slice(0, 3));
     console.log('LightningChart: Time range from', new Date(data[0].x).toISOString(), 'to', new Date(data[data.length-1].x).toISOString());
     
+    // Clear existing data
     this.lineSeries.clear();
+    
+    // Add new data and wait for the next animation frame to ensure rendering is complete
     this.lineSeries.add(data);
     
-    // Fit chart to data
-    this.chart?.getDefaultAxisX().fit();
-    this.chart?.getDefaultAxisY().fit();
+    // Wait for the chart to finish rendering
+    await new Promise<void>((resolve) => {
+      // Use requestAnimationFrame to ensure we capture the actual rendering time
+      requestAnimationFrame(() => {
+        // Fit chart to data
+        this.chart?.getDefaultAxisX().fit();
+        this.chart?.getDefaultAxisY().fit();
+        
+        // Wait for another frame to ensure the fit operations are complete
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      });
+    });
     
     const renderTime = this.performanceService.endTimer(renderStartTime);
     
@@ -147,12 +161,12 @@ export class LightningChartsComponent implements OnInit, OnDestroy {
     this.performanceService.recordMetrics(this.lastMetrics);
   }
   
-  updateChart(newDataset: BenchmarkDataset): void {
+  async updateChart(newDataset: BenchmarkDataset): Promise<void> {
     this.dataset = newDataset;
     
     if (this.lineSeries) {
       const updateStartTime = this.performanceService.startTimer();
-      this.renderChart();
+      await this.renderChart();
       const updateTime = this.performanceService.endTimer(updateStartTime);
       
       if (this.lastMetrics) {

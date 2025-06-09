@@ -163,7 +163,7 @@ export class ChartjsComponent implements OnInit, OnDestroy {
     }
   }
   
-  renderChart(initTime?: number): void {
+  async renderChart(initTime?: number): Promise<void> {
     console.log('Rendering Chart.js chart');
     if (!this.chart || !this.dataset) {
       console.error('Chart or dataset is null', { chart: !!this.chart, dataset: !!this.dataset });
@@ -218,8 +218,17 @@ export class ChartjsComponent implements OnInit, OnDestroy {
       if (this.chart.data.datasets && this.chart.data.datasets.length > 0) {
         this.chart.data.datasets[0].data = data;
         
-        // Use update with mode: 'none' for better performance
-        this.chart.update('none');
+        // Wait for chart update to complete
+        await new Promise<void>((resolve) => {
+          requestAnimationFrame(() => {
+            // Use update with mode: 'none' for better performance
+            this.chart?.update('none');
+            // Wait for another frame to ensure the update is complete
+            requestAnimationFrame(() => {
+              resolve();
+            });
+          });
+        });
         console.log('Chart.js: Updated chart with', data.length, 'points');
       } else {
         console.error('Chart.js: No datasets available');
@@ -243,13 +252,13 @@ export class ChartjsComponent implements OnInit, OnDestroy {
     console.log('Chart.js rendered in', renderTime, 'ms');
   }
   
-  updateChart(newDataset: BenchmarkDataset): void {
+  async updateChart(newDataset: BenchmarkDataset): Promise<void> {
     console.log('Updating Chart.js chart with new dataset');
     this.dataset = newDataset;
     
     if (this.chart) {
       const updateStartTime = this.performanceService.startTimer();
-      this.renderChart();
+      await this.renderChart();
       const updateTime = this.performanceService.endTimer(updateStartTime);
       
       if (this.lastMetrics) {
