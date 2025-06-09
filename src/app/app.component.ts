@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { BenchmarkDashboardComponent } from './components/benchmark-dashboard-simple.component';
+import { BenchmarkDashboardComponent } from './components/benchmark-dashboard.component';
 
 @Component({
   selector: 'app-root',

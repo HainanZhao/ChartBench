@@ -6,6 +6,7 @@ import { PerformanceService, BenchmarkResult } from '../services/performance.ser
 import { EchartsComponent } from '../components/echarts.component';
 import { LightweightChartsComponent } from '../components/lightweight-charts.component';
 import { LightningChartsComponent } from '../components/lightning-charts.component';
+import { ChartjsComponent } from '../components/chartjs.component';
 
 @Component({
   selector: 'app-benchmark-dashboard',
@@ -15,7 +16,8 @@ import { LightningChartsComponent } from '../components/lightning-charts.compone
     FormsModule, 
     EchartsComponent,
     LightweightChartsComponent,
-    LightningChartsComponent
+    LightningChartsComponent,
+    ChartjsComponent
   ],
   template: `
     <div class="dashboard">
@@ -67,6 +69,12 @@ import { LightningChartsComponent } from '../components/lightning-charts.compone
           [dataset]="currentDataset"
           [height]="400">
         </app-lightning-charts-benchmark>
+
+        <app-chartjs-benchmark 
+          #chartjsComponent
+          [dataset]="currentDataset"
+          [height]="400">
+        </app-chartjs-benchmark>
       </div>
 
       <div class="results-section" *ngIf="benchmarkResults.length > 0">
@@ -330,6 +338,7 @@ export class BenchmarkDashboardComponent implements OnInit {
   @ViewChild('echartsComponent') echartsComponent!: EchartsComponent;
   @ViewChild('lightweightChartsComponent') lightweightChartsComponent!: LightweightChartsComponent;
   @ViewChild('lightningChartsComponent') lightningChartsComponent!: LightningChartsComponent;
+  @ViewChild('chartjsComponent') chartjsComponent!: ChartjsComponent;
 
   datasetPresets = this.timeSeriesDataService.getPresetDatasets();
   selectedDatasetSize = 1000;
@@ -393,6 +402,11 @@ export class BenchmarkDashboardComponent implements OnInit {
         this.lightningChartsComponent.updateChart(testDataset);
         await this.delay(100);
       }
+
+      if (this.chartjsComponent) {
+        this.chartjsComponent.updateChart(testDataset);
+        await this.delay(100);
+      }
     }
 
     this.progressPercentage = 100;
@@ -432,6 +446,9 @@ export class BenchmarkDashboardComponent implements OnInit {
     }
     if (this.lightningChartsComponent) {
       this.lightningChartsComponent.updateChart(dataset);
+    }
+    if (this.chartjsComponent) {
+      this.chartjsComponent.updateChart(dataset);
     }
   }
 
