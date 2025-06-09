@@ -407,41 +407,83 @@ export class BenchmarkDashboardComponent implements OnInit {
     this.performanceService.clearResults();
 
     const testSizes = [1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000];
-    const totalTests = testSizes.length;
+    const ITERATIONS_PER_SIZE = 3;
+    const totalTests = testSizes.length * ITERATIONS_PER_SIZE;
+    let testCount = 0;
 
+    // For each size, run multiple iterations
     for (let i = 0; i < testSizes.length; i++) {
       const size = testSizes[i];
-      this.progressText = `Testing with ${size.toLocaleString()} data points...`;
-      this.progressPercentage = (i / totalTests) * 100;
+      const iterationResults: { [key: string]: number[] } = {};
+      
+      for (let iteration = 0; iteration < ITERATIONS_PER_SIZE; iteration++) {
+        this.progressText = `Testing ${size.toLocaleString()} points (iteration ${iteration + 1}/${ITERATIONS_PER_SIZE})...`;
+        this.progressPercentage = (testCount / totalTests) * 100;
+        testCount++;
 
-      // Generate test data
-      const testDataset = this.timeSeriesDataService.generateTimeSeriesData(
-        size,
-        `Test Dataset (${size.toLocaleString()} points)`
-      );
+        // Generate test data
+        const testDataset = this.timeSeriesDataService.generateTimeSeriesData(
+          size,
+          `Test Dataset (${size.toLocaleString()} points)`
+        );
 
-      // Test each chart component
-      await this.delay(100); // Small delay for UI updates
-
-      if (this.echartsComponent) {
-        this.echartsComponent.updateChart(testDataset);
+        // Small delay for UI updates
         await this.delay(100);
+
+        // Test each chart component
+        if (this.echartsComponent) {
+          await this.echartsComponent.updateChart(testDataset);
+          if (this.echartsComponent.lastMetrics) {
+            if (!iterationResults['ECharts']) iterationResults['ECharts'] = [];
+            iterationResults['ECharts'].push(this.echartsComponent.lastMetrics.renderTime);
+          }
+        }
+
+        await this.delay(100);
+
+        if (this.lightweightChartsComponent) {
+          await this.lightweightChartsComponent.updateChart(testDataset);
+          if (this.lightweightChartsComponent.lastMetrics) {
+            if (!iterationResults['TradingView Lightweight Charts']) iterationResults['TradingView Lightweight Charts'] = [];
+            iterationResults['TradingView Lightweight Charts'].push(this.lightweightChartsComponent.lastMetrics.renderTime);
+          }
+        }
+
+        await this.delay(100);
+
+        if (this.lightningChartsComponent) {
+          await this.lightningChartsComponent.updateChart(testDataset);
+          if (this.lightningChartsComponent.lastMetrics) {
+            if (!iterationResults['LightningChart']) iterationResults['LightningChart'] = [];
+            iterationResults['LightningChart'].push(this.lightningChartsComponent.lastMetrics.renderTime);
+          }
+        }
+
+        await this.delay(100);
+
+        if (this.chartjsComponent) {
+          await this.chartjsComponent.updateChart(testDataset);
+          if (this.chartjsComponent.lastMetrics) {
+            if (!iterationResults['Chart.js']) iterationResults['Chart.js'] = [];
+            iterationResults['Chart.js'].push(this.chartjsComponent.lastMetrics.renderTime);
+          }
+        }
       }
 
-      if (this.lightweightChartsComponent) {
-        this.lightweightChartsComponent.updateChart(testDataset);
-        await this.delay(100);
-      }
-
-      if (this.lightningChartsComponent) {
-        this.lightningChartsComponent.updateChart(testDataset);
-        await this.delay(100);
-      }
-
-      if (this.chartjsComponent) {
-        this.chartjsComponent.updateChart(testDataset);
-        await this.delay(100);
-      }
+      // Calculate and record averages for each chart library
+      Object.entries(iterationResults).forEach(([library, times]) => {
+        const avgRenderTime = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+        const metrics = {
+          chartLibrary: library,
+          pointCount: size,
+          renderTime: avgRenderTime,
+          initTime: 0, // We're focusing on render time for the benchmark
+          memoryUsage: this.performanceService.getMemoryUsage(),
+          timestamp: Date.now(),
+          individualRuns: times // Keep the individual runs for potential analysis
+        };
+        this.performanceService.recordMetrics(metrics);
+      });
     }
 
     this.progressPercentage = 100;
@@ -455,7 +497,7 @@ export class BenchmarkDashboardComponent implements OnInit {
 
     // Reset to original dataset
     if (this.currentDataset) {
-      this.updateAllCharts(this.currentDataset);
+      await this.updateAllCharts(this.currentDataset);
     }
   }
 
@@ -472,18 +514,18 @@ export class BenchmarkDashboardComponent implements OnInit {
     return 'Poor';
   }
 
-  private updateAllCharts(dataset: BenchmarkDataset): void {
+  private async updateAllCharts(dataset: BenchmarkDataset): Promise<void> {
     if (this.echartsComponent) {
-      this.echartsComponent.updateChart(dataset);
+      await this.echartsComponent.updateChart(dataset);
     }
     if (this.lightweightChartsComponent) {
-      this.lightweightChartsComponent.updateChart(dataset);
+      await this.lightweightChartsComponent.updateChart(dataset);
     }
     if (this.lightningChartsComponent) {
-      this.lightningChartsComponent.updateChart(dataset);
+      await this.lightningChartsComponent.updateChart(dataset);
     }
     if (this.chartjsComponent) {
-      this.chartjsComponent.updateChart(dataset);
+      await this.chartjsComponent.updateChart(dataset);
     }
   }
 

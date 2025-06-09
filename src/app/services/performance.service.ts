@@ -8,6 +8,7 @@ export interface PerformanceMetrics {
   updateTime?: number;
   memoryUsage?: number;
   timestamp: number;
+  individualRuns?: number[]; // Store individual run times for calculating variance
 }
 
 export interface BenchmarkResult {
@@ -46,9 +47,34 @@ export class PerformanceService {
       const initTimes = metrics.map(m => m.initTime);
       const updateTimes = metrics.filter(m => m.updateTime !== undefined).map(m => m.updateTime!);
       
+      // Group metrics by point count to calculate proper averages
+      const metricsByPointCount = new Map<number, PerformanceMetrics[]>();
+      metrics.forEach(m => {
+        const existing = metricsByPointCount.get(m.pointCount) || [];
+        existing.push(m);
+        metricsByPointCount.set(m.pointCount, existing);
+      });
+
+      // Calculate averages for each point count
+      const processedMetrics: PerformanceMetrics[] = [];
+      metricsByPointCount.forEach((pointMetrics, pointCount) => {
+        const avgRenderTime = Math.round(pointMetrics.reduce((sum, m) => sum + m.renderTime, 0) / pointMetrics.length);
+        const avgInitTime = Math.round(pointMetrics.reduce((sum, m) => sum + m.initTime, 0) / pointMetrics.length);
+        const runs = pointMetrics.map(m => m.renderTime);
+        
+        processedMetrics.push({
+          chartLibrary,
+          pointCount,
+          renderTime: avgRenderTime,
+          initTime: avgInitTime,
+          timestamp: Date.now(),
+          individualRuns: runs
+        });
+      });
+
       results.push({
         chartLibrary,
-        metrics,
+        metrics: processedMetrics,
         averageRenderTime: this.calculateAverage(renderTimes),
         averageInitTime: this.calculateAverage(initTimes),
         averageUpdateTime: this.calculateAverage(updateTimes)
