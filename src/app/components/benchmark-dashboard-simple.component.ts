@@ -147,12 +147,19 @@ import { LightningChartsComponent } from '../components/lightning-charts.compone
 
     .controls {
       display: flex;
+      flex-wrap: wrap;
       gap: 20px;
       margin-bottom: 20px;
       background: white;
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    @media (max-width: 768px) {
+      .controls {
+        flex-direction: column;
+      }
     }
 
     .control-group {
@@ -251,20 +258,29 @@ import { LightningChartsComponent } from '../components/lightning-charts.compone
 
     .charts-container {
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
       gap: 20px;
       margin-bottom: 30px;
+      max-width: 100%;
     }
 
-    @media (min-width: 1200px) {
+    .charts-container > * {
+      width: 100%;
+    }
+
+    @media (min-width: 2100px) {
       .charts-container {
         grid-template-columns: repeat(2, 1fr);
+        max-width: 2000px;
+        margin-left: auto;
+        margin-right: auto;
       }
     }
 
-    @media (min-width: 1800px) {
-      .charts-container {
-        grid-template-columns: repeat(3, 1fr);
+    @media (max-width: 1199px) {
+      .charts-container > * {
+        flex: 1 1 100%;
+        max-width: 100%;
       }
     }
 
@@ -334,12 +350,16 @@ import { LightningChartsComponent } from '../components/lightning-charts.compone
     }
 
     .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      display: flex;
+      flex-wrap: wrap;
       gap: 20px;
+      justify-content: space-between;
     }
-
+    
     .metric-card {
+      flex: 1 1 calc(50% - 20px);
+      min-width: 300px;
+      max-width: calc(50% - 10px);
       background: #f8f9fa;
       padding: 20px;
       border-radius: 8px;

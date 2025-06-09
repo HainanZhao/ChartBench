@@ -25,12 +25,11 @@ import { ChartStyleService } from '../services/chart-style.service';
   `,
   styles: [`
     .chart-container {
-      margin: 20px;
+      margin: 0;
       padding: 15px;
       border: 1px solid #ddd;
       border-radius: 8px;
       background: white;
-      width: 860px; /* Consistent width including padding */
     }
     
     .chart {

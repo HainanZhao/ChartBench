@@ -24,7 +24,6 @@ import { PerformanceService } from '../services/performance.service';
   `,
   styles: [`
     .chart-container {
-      margin: 20px;
       padding: 15px;
       border: 1px solid #ddd;
       border-radius: 8px;

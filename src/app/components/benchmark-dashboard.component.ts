@@ -51,31 +51,40 @@ import { ChartjsComponent } from '../components/chartjs.component';
         <p>{{ progressText }}</p>
       </div>
 
-      <div class="charts-container" *ngIf="currentDataset">
-        <app-echarts-benchmark 
-          #echartsComponent
-          [dataset]="currentDataset"
-          [height]="400">
-        </app-echarts-benchmark>
-
-        <app-lightweight-charts-benchmark 
-          #lightweightChartsComponent
-          [dataset]="currentDataset"
-          [height]="400">
-        </app-lightweight-charts-benchmark>
-
-        <app-lightning-charts-benchmark 
-          #lightningChartsComponent
-          [dataset]="currentDataset"
-          [height]="400">
-        </app-lightning-charts-benchmark>
-
-        <app-chartjs-benchmark 
-          #chartjsComponent
-          [dataset]="currentDataset"
-          [height]="400">
-        </app-chartjs-benchmark>
-      </div>
+      <table class="charts-container" *ngIf="currentDataset">
+        <tr>
+          <td>
+            <app-echarts-benchmark 
+              #echartsComponent
+              [dataset]="currentDataset"
+              [height]="400">
+            </app-echarts-benchmark>
+          </td>
+          <td>
+            <app-lightweight-charts-benchmark 
+              #lightweightChartsComponent
+              [dataset]="currentDataset"
+              [height]="400">
+            </app-lightweight-charts-benchmark>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <app-lightning-charts-benchmark 
+              #lightningChartsComponent
+              [dataset]="currentDataset"
+              [height]="400">
+            </app-lightning-charts-benchmark>
+          </td>
+          <td>
+            <app-chartjs-benchmark 
+              #chartjsComponent
+              [dataset]="currentDataset"
+              [height]="400">
+            </app-chartjs-benchmark>
+          </td>
+        </tr>
+      </table>
 
       <div class="results-section" *ngIf="benchmarkResults.length > 0">
         <h2>Benchmark Results</h2>
@@ -149,12 +158,19 @@ import { ChartjsComponent } from '../components/chartjs.component';
 
     .controls {
       display: flex;
+      flex-wrap: wrap;
       gap: 20px;
       margin-bottom: 20px;
       background: white;
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    @media (max-width: 768px) {
+      .controls {
+        flex-direction: column;
+      }
     }
 
     .control-group {
@@ -232,21 +248,29 @@ import { ChartjsComponent } from '../components/chartjs.component';
     }
 
     .charts-container {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 20px;
+      width: 100%;
+      border-spacing: 20px;
+      border-collapse: separate;
       margin-bottom: 30px;
     }
 
-    @media (min-width: 1200px) {
-      .charts-container {
-        grid-template-columns: repeat(2, 1fr);
-      }
+    .charts-container td {
+      width: 50%;
+      min-width: 500px;
+      vertical-align: top;
     }
 
-    @media (min-width: 1800px) {
-      .charts-container {
-        grid-template-columns: repeat(3, 1fr);
+    @media (max-width: 1199px) {
+      .charts-container, 
+      .charts-container tbody,
+      .charts-container tr,
+      .charts-container td {
+        display: block;
+        width: 100%;
+      }
+      
+      .charts-container td {
+        margin-bottom: 20px;
       }
     }
 
@@ -296,9 +320,20 @@ import { ChartjsComponent } from '../components/chartjs.component';
     }
 
     .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      display: flex;
+      flex-wrap: wrap;
       gap: 20px;
+      justify-content: space-between;
+    }
+    
+    .metric-card {
+      flex: 1 1 calc(50% - 20px);
+      min-width: 300px;
+      max-width: calc(50% - 10px);
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
 
     .metric-card {
