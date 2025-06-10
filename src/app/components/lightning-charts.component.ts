@@ -256,7 +256,7 @@ export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   addPoint(point: { time: number, value: number }, redraw: boolean = true): void {
-    if (!this.lineSeries || !this.dataset) {
+    if (!this.dataset) {
       return;
     }
 
@@ -266,25 +266,8 @@ export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
     this.dataset.points.push(point);
     this.dataset.pointCount = this.dataset.points.length;
     
-    // Add single point efficiently
-    const newPoint = { x: point.time, y: point.value };
-    this.lineSeries.add(newPoint);
-    
-    // Update the original range to include the new point for reset functionality
-    if (this.originalXRange) {
-      this.originalXRange.max = Math.max(this.originalXRange.max, point.time);
-      this.originalXRange.min = Math.min(this.originalXRange.min, point.time);
-    } else if (this.dataset.points.length > 0) {
-      // Initialize originalXRange if it doesn't exist
-      this.originalXRange = {
-        min: this.dataset.points[0].time,
-        max: point.time
-      };
-    }
-    
-    // Don't automatically update time window during streaming to prevent shaking
-    // The user can manually use "Reset View" to apply the time window
-    // This ensures smooth streaming without constant view adjustments
+    // Use updateChart approach for reliability - let Lightning Charts handle optimization
+    this.updateChart(this.dataset);
     
     const endTime = this.performanceService.endTimer(startTime);
     
