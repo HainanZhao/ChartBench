@@ -1,4 +1,4 @@
-import { Component, ElementRef, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, Input, OnDestroy, OnInit, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { lightningChart, LightningChart, LineSeries, ChartXY } from '@lightningchart/lcjs';
 import { BenchmarkDataset } from '../services/time-series-data.service';
@@ -55,7 +55,7 @@ import { PerformanceService } from '../services/performance.service';
     }
   `]
 })
-export class LightningChartsComponent implements OnInit, OnDestroy {
+export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
   @Input() dataset: BenchmarkDataset | null = null;
   @Input() height: number = 400;
@@ -74,6 +74,12 @@ export class LightningChartsComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.chart) {
       this.chart.dispose();
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['dataset'] && this.chart && this.dataset) {
+      this.renderChart();
     }
   }
   

@@ -1,4 +1,4 @@
-import { Component, ElementRef, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, Input, OnDestroy, OnInit, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { createChart, IChartApi, ISeriesApi, LineData, UTCTimestamp } from 'lightweight-charts';
 import { BenchmarkDataset } from '../services/time-series-data.service';
@@ -63,7 +63,7 @@ import { ChartStyleService } from '../services/chart-style.service';
     }
   `]
 })
-export class LightweightChartsComponent implements OnInit, OnDestroy {
+export class LightweightChartsComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
   @Input() dataset: BenchmarkDataset | null = null;
   @Input() height: number = 400;
@@ -84,6 +84,12 @@ export class LightweightChartsComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.chart) {
       this.chart.remove();
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['dataset'] && this.chart && this.dataset) {
+      this.renderChart();
     }
   }
   

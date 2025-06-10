@@ -1,4 +1,4 @@
-import { Component, ElementRef, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, Input, OnDestroy, OnInit, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Chart } from 'chart.js/auto';
 import { BenchmarkDataset } from '../services/time-series-data.service';
@@ -55,7 +55,7 @@ import 'chartjs-adapter-date-fns';
     }
   `]
 })
-export class ChartjsComponent implements OnInit, OnDestroy {
+export class ChartjsComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('chartCanvas', { static: true }) chartCanvas!: ElementRef<HTMLCanvasElement>;
   @Input() dataset: BenchmarkDataset | null = null;
   @Input() height: number = 400;
@@ -73,6 +73,12 @@ export class ChartjsComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.chart) {
       this.chart.destroy();
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['dataset'] && this.chart && this.dataset) {
+      this.renderChart();
     }
   }
   
