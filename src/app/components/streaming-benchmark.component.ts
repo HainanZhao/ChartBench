@@ -8,6 +8,7 @@ import { LightweightChartsComponent } from './lightweight-charts.component';
 import { LightningChartsComponent } from './lightning-charts.component';
 import { ChartjsComponent } from './chartjs.component';
 import { HighchartsComponent } from './highcharts.component';
+import { D3ChartComponent } from './d3-chart.component';
 
 interface StreamingMetrics {
   timestamp: number;
@@ -27,7 +28,8 @@ interface StreamingMetrics {
     LightweightChartsComponent,
     LightningChartsComponent,
     ChartjsComponent,
-    HighchartsComponent
+    HighchartsComponent,
+    D3ChartComponent
   ],
   template: `
     <div class="streaming-benchmark">
@@ -43,6 +45,7 @@ interface StreamingMetrics {
               <option value="lightning">LightningChart</option>
               <option value="chartjs">Chart.js</option>
               <option value="highcharts">Highcharts</option>
+              <option value="d3">D3.js</option>
             </select>
           </div>
           
@@ -135,6 +138,15 @@ interface StreamingMetrics {
             [height]="400"
             [title]="'Highcharts - Real-time Streaming'">
           </app-highcharts>
+        </div>
+
+        <!-- D3.js -->
+        <div *ngIf="selectedChart === 'd3'" class="chart-wrapper">
+          <app-d3-benchmark 
+            #d3ChartComponent
+            [dataset]="currentDataset"
+            [height]="400">
+          </app-d3-benchmark>
         </div>
 
 
@@ -344,6 +356,7 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
   @ViewChild('lightningChartsComponent') lightningChartsComponent?: LightningChartsComponent;
   @ViewChild('chartjsComponent') chartjsComponent?: ChartjsComponent;
   @ViewChild('highchartsComponent') highchartsComponent?: HighchartsComponent;
+  @ViewChild('d3ChartComponent') d3ChartComponent?: D3ChartComponent;
 
   @ViewChild('metricsCanvas') metricsCanvas?: any;
 
@@ -505,6 +518,11 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
           this.highchartsComponent.addPoint(newPoint, true);
         }
         break;
+      case 'd3':
+        if (this.d3ChartComponent) {
+          await this.d3ChartComponent.updateChart(this.currentDataset);
+        }
+        break;
     }
   }
 
@@ -538,6 +556,11 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
           this.highchartsComponent.updateData(this.currentDataset.points);
         }
         break;
+      case 'd3':
+        if (this.d3ChartComponent) {
+          await this.d3ChartComponent.updateChart(this.currentDataset);
+        }
+        break;
     }
   }
 
@@ -562,6 +585,9 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
         break;
       case 'highcharts':
         renderTime = this.highchartsComponent?.lastRenderTime || 0;
+        break;
+      case 'd3':
+        renderTime = this.d3ChartComponent?.lastMetrics?.renderTime || 0;
         break;
     }
 

@@ -8,6 +8,7 @@ import { LightweightChartsComponent } from '../components/lightweight-charts.com
 import { LightningChartsComponent } from '../components/lightning-charts.component';
 import { ChartjsComponent } from '../components/chartjs.component';
 import { HighchartsComponent } from '../components/highcharts.component';
+import { D3ChartComponent } from '../components/d3-chart.component';
 
 @Component({
   selector: 'app-benchmark-dashboard',
@@ -19,7 +20,8 @@ import { HighchartsComponent } from '../components/highcharts.component';
     LightweightChartsComponent,
     LightningChartsComponent,
     ChartjsComponent,
-    HighchartsComponent
+    HighchartsComponent,
+    D3ChartComponent
   ],
   template: `
     <div class="dashboard">
@@ -84,6 +86,13 @@ import { HighchartsComponent } from '../components/highcharts.component';
             [height]="400"
             [title]="'Highcharts - ' + (currentDataset.name || '')">
           </app-highcharts>
+        </div>
+        <div class="chart-item">
+          <app-d3-benchmark 
+            #d3ChartComponent
+            [dataset]="currentDataset"
+            [height]="400">
+          </app-d3-benchmark>
         </div>
 
       </div>
@@ -406,6 +415,7 @@ export class BenchmarkDashboardComponent implements OnInit {
   @ViewChild('lightningChartsComponent') lightningChartsComponent!: LightningChartsComponent;
   @ViewChild('chartjsComponent') chartjsComponent!: ChartjsComponent;
   @ViewChild('highchartsComponent') highchartsComponent!: HighchartsComponent;
+  @ViewChild('d3ChartComponent') d3ChartComponent!: D3ChartComponent;
 
 
   datasetPresets = this.timeSeriesDataService.getPresetDatasets();
@@ -513,6 +523,16 @@ export class BenchmarkDashboardComponent implements OnInit {
         }
 
         await this.delay(100);
+        
+        if (this.d3ChartComponent) {
+          await this.d3ChartComponent.updateChart(testDataset);
+          if (this.d3ChartComponent.lastMetrics) {
+            if (!iterationResults['D3.js']) iterationResults['D3.js'] = [];
+            iterationResults['D3.js'].push(this.d3ChartComponent.lastMetrics.renderTime);
+          }
+        }
+
+        await this.delay(100);
       }
 
       // Calculate and record averages for each chart library
@@ -574,6 +594,9 @@ export class BenchmarkDashboardComponent implements OnInit {
     }
     if (this.highchartsComponent) {
       this.highchartsComponent.updateData(dataset.points);
+    }
+    if (this.d3ChartComponent) {
+      await this.d3ChartComponent.updateChart(dataset);
     }
   }
 
