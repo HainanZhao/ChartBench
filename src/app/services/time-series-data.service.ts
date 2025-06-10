@@ -80,13 +80,8 @@ export class TimeSeriesDataService {
       // For very large datasets, provide progress feedback
       if (pointCount > 100000 && i % batchSize === 0) {
         // Allow the UI to update by yielding control occasionally
-        if (i > 0) {
-          console.log(`Generated ${i.toLocaleString()} / ${pointCount.toLocaleString()} data points (${Math.round(i/pointCount*100)}%)`);
-        }
       }
     }
-    
-    console.log(`Generated wave-like dataset "${name}" with ${pointCount.toLocaleString()} points`);
     
     return {
       name,

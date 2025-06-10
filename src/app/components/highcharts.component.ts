@@ -240,9 +240,7 @@ export class HighchartsComponent implements OnInit, OnDestroy, OnChanges {
             
             const endTime = performance.now();
             this.lastRenderTime = Math.round(endTime - startTime);
-            
-            console.log(`Highcharts rendered ${this.pointCount.toLocaleString()} points in ${this.lastRenderTime}ms`);
-            
+
             resolve({
               renderTime: this.lastRenderTime,
               chartInstance: this.chart
@@ -293,9 +291,6 @@ export class HighchartsComponent implements OnInit, OnDestroy, OnChanges {
       
       const endTime = performance.now();
       this.lastRenderTime = Math.round(endTime - startTime);
-      
-      console.log(`Highcharts static update: ${this.lastRenderTime}ms for ${this.pointCount} points`);
-      
     } catch (error) {
       console.error('Highcharts static update error:', error);
       // Fallback to full recreation if update fails
@@ -334,8 +329,6 @@ export class HighchartsComponent implements OnInit, OnDestroy, OnChanges {
       // Measure and update streaming render time
       const endTime = performance.now();
       this.lastRenderTime = Math.round(endTime - startTime);
-      console.log(`Highcharts streaming update: added ${newPoints.length} points in ${this.lastRenderTime}ms`);
-      
     } else if (newDataLength < currentDataLength) {
       // Data was reset or truncated, do full re-render
       this.renderChart();
@@ -372,7 +365,6 @@ export class HighchartsComponent implements OnInit, OnDestroy, OnChanges {
     if (redraw) {
       const endTime = performance.now();
       this.lastRenderTime = Math.round(endTime - startTime);
-      console.log(`Highcharts addPoint: ${this.lastRenderTime}ms for point ${this.pointCount}`);
     }
   }
 

@@ -64,11 +64,9 @@ export class ChartjsComponent implements OnInit, OnDestroy {
   lastMetrics: any = null;
   
   constructor(public performanceService: PerformanceService) {
-    console.log('ChartjsComponent constructor');
   }
   
   ngOnInit(): void {
-    console.log('ChartjsComponent initialized');
     this.initChart();
   }
   
@@ -79,7 +77,6 @@ export class ChartjsComponent implements OnInit, OnDestroy {
   }
   
   private initChart(): void {
-    console.log('Initializing Chart.js chart');
     const initStartTime = this.performanceService.startTimer();
     
     // Check if the canvas exists
@@ -156,7 +153,6 @@ export class ChartjsComponent implements OnInit, OnDestroy {
     });
     
     const initTime = this.performanceService.endTimer(initStartTime);
-    console.log('Chart.js initialized in', initTime, 'ms');
     
     if (this.dataset) {
       this.renderChart(initTime);
@@ -164,7 +160,6 @@ export class ChartjsComponent implements OnInit, OnDestroy {
   }
   
   renderChart(initTime?: number): void {
-    console.log('Rendering Chart.js chart');
     if (!this.chart || !this.dataset) {
       console.error('Chart or dataset is null', { chart: !!this.chart, dataset: !!this.dataset });
       return;
@@ -179,7 +174,6 @@ export class ChartjsComponent implements OnInit, OnDestroy {
         y: point.value
       }));
       
-      console.log('Chart.js: Sample converted data:', data.slice(0, 3));
       
       if (data.length > 0) {
         // Calculate time range and adjust scale options accordingly
@@ -187,8 +181,6 @@ export class ChartjsComponent implements OnInit, OnDestroy {
         const lastTimestamp = data[data.length - 1].x;
         const timeRangeMs = lastTimestamp - firstTimestamp;
         const timeRangeDays = timeRangeMs / (1000 * 60 * 60 * 24);
-        
-        console.log(`Chart.js: Time range is ${timeRangeDays.toFixed(2)} days (${timeRangeMs} ms)`);
         
         // Adjust time unit based on data range
         let timeUnit = 'minute';
@@ -208,7 +200,6 @@ export class ChartjsComponent implements OnInit, OnDestroy {
         if (this.chart.options.scales && 'x' in this.chart.options.scales) {
           const xScale = this.chart.options.scales['x'] as any;
           if (xScale && xScale.time) {
-            console.log(`Chart.js: Adjusting time unit to ${timeUnit} for data range of ${timeRangeDays.toFixed(2)} days`);
             xScale.time.unit = timeUnit;
           }
         }
@@ -220,7 +211,6 @@ export class ChartjsComponent implements OnInit, OnDestroy {
         
         // Use update with mode: 'none' for better performance
         this.chart.update('none');
-        console.log('Chart.js: Updated chart with', data.length, 'points');
       } else {
         console.error('Chart.js: No datasets available');
       }
@@ -240,11 +230,9 @@ export class ChartjsComponent implements OnInit, OnDestroy {
     };
     
     this.performanceService.recordMetrics(this.lastMetrics);
-    console.log('Chart.js rendered in', renderTime, 'ms');
   }
   
   updateChart(newDataset: BenchmarkDataset): void {
-    console.log('Updating Chart.js chart with new dataset');
     this.dataset = newDataset;
     
     if (this.chart) {
@@ -255,7 +243,6 @@ export class ChartjsComponent implements OnInit, OnDestroy {
       if (this.lastMetrics) {
         this.lastMetrics.updateTime = updateTime;
       }
-      console.log('Chart.js updated in', updateTime, 'ms');
     } else {
       console.error('Chart.js: No chart instance available for update');
     }

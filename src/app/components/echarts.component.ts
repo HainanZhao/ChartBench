@@ -77,11 +77,9 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
   ) {}
   
   ngOnInit(): void {
-    console.log('ECharts ngOnInit called');
   }
   
   ngAfterViewInit(): void {
-    console.log('ECharts ngAfterViewInit called');
     setTimeout(() => {
       this.initChart();
     }, 100);
@@ -110,14 +108,9 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
     
     // Set container height to match input
     container.style.height = `${this.height}px`;
-    
-    console.log('ECharts initChart: Container details', {
-      width: container.offsetWidth,
-      height: container.offsetHeight
-    });
+  
 
     this.chart = echarts.init(container);
-    console.log('ECharts initChart: Chart initialized');
     
     const initTime = this.performanceService.endTimer(initStartTime);
     
@@ -137,18 +130,11 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
     
     const renderStartTime = this.performanceService.startTimer();
     
-    console.log('ECharts renderChart: Starting render with', this.dataset.pointCount, 'points');
-    console.log('ECharts renderChart: Sample data points:', this.dataset.points.slice(0, 3));
-    
     // Convert to consistent format: use timestamp directly in milliseconds for ECharts time axis
     const data = this.dataset.points.map(point => [
       point.time, // ECharts expects milliseconds for time axis
       point.value
     ]);
-    
-    console.log('ECharts renderChart: Converted data sample:', data.slice(0, 3));
-    console.log('ECharts renderChart: Time range from', new Date(data[0][0]).toISOString(), 'to', new Date(data[data.length-1][0]).toISOString());
-    
     const styleConfig = this.chartStyleService.getStyleConfig();
     
     const option = {
@@ -244,7 +230,6 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
     
     this.performanceService.recordMetrics(this.lastMetrics);
     
-    console.log('ECharts renderChart: Chart rendered');
   }
   
   updateChart(newDataset: BenchmarkDataset): void {

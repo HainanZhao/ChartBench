@@ -165,9 +165,6 @@ export class LightweightChartsComponent implements OnInit, OnDestroy {
       value: point.value
     }));
     
-    console.log('Lightweight Charts: Sample converted data:', data.slice(0, 3));
-    console.log('Lightweight Charts: Time range from', new Date(Number(data[0].time) * 1000).toISOString(), 'to', new Date(Number(data[data.length-1].time) * 1000).toISOString());
-    
     this.lineSeries.setData(data);
     
     // Fit content to show all data

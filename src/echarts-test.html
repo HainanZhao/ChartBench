@@ -8,8 +8,6 @@
     <div id="chart" style="width: 600px; height: 400px; border: 1px solid #ccc;"></div>
     
     <script>
-        console.log('ECharts version:', echarts.version);
-        
         const chartDom = document.getElementById('chart');
         const myChart = echarts.init(chartDom);
         
@@ -31,7 +29,6 @@
         };
         
         myChart.setOption(option);
-        console.log('ECharts test chart rendered');
     </script>
 </body>
 </html>

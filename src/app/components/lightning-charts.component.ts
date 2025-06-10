@@ -123,9 +123,6 @@ export class LightningChartsComponent implements OnInit, OnDestroy {
       y: point.value
     }));
     
-    console.log('LightningChart: Sample converted data:', data.slice(0, 3));
-    console.log('LightningChart: Time range from', new Date(data[0].x).toISOString(), 'to', new Date(data[data.length-1].x).toISOString());
-    
     this.lineSeries.clear();
     this.lineSeries.add(data);
     
