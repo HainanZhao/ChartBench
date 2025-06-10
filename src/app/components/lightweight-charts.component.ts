@@ -22,7 +22,8 @@ import { ChartStyleService } from '../services/chart-style.service';
       </div>
       <div #chartContainer class="chart" [style.height.px]="height"></div>
       <div class="zoom-control">
-        <button (click)="resetZoom()" class="reset-zoom-btn">Reset Zoom</button>
+        <button (click)="resetZoom()" class="reset-zoom-btn">Reset View</button>
+        <button (click)="resetToFullView()" class="full-view-btn">View All</button>
       </div>
     </div>
   `,
@@ -71,9 +72,12 @@ import { ChartStyleService } from '../services/chart-style.service';
       top: 40px;
       right: 25px;
       z-index: 10;
+      display: flex;
+      gap: 5px;
+      flex-direction: column;
     }
     
-    .reset-zoom-btn {
+    .reset-zoom-btn, .full-view-btn {
       background-color: #2196f3;
       color: white;
       border: none;
@@ -82,10 +86,15 @@ import { ChartStyleService } from '../services/chart-style.service';
       font-size: 12px;
       cursor: pointer;
       opacity: 0.8;
+      white-space: nowrap;
     }
     
-    .reset-zoom-btn:hover {
+    .reset-zoom-btn:hover, .full-view-btn:hover {
       opacity: 1;
+    }
+    
+    .full-view-btn {
+      background-color: #4caf50;
     }
   `]
 })
@@ -250,6 +259,15 @@ export class LightweightChartsComponent implements OnInit, OnDestroy, OnChanges 
   // Reset zoom to the time window view
   resetZoom(): void {
     this.applyTimeWindow();
+  }
+
+  resetToFullView(): void {
+    if (!this.chart) {
+      return;
+    }
+    
+    // Reset to show all data (full dataset)
+    this.chart.timeScale().fitContent();
   }
   
   updateChart(newDataset: BenchmarkDataset): void {

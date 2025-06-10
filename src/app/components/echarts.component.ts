@@ -21,6 +21,10 @@ import { ChartStyleService } from '../services/chart-style.service';
         {{ dataset.name }} ({{ dataset.pointCount.toLocaleString() }} points)
       </div>
       <div #chartContainer class="chart" [style.height.px]="height"></div>
+      <div class="zoom-control">
+        <button (click)="resetZoom()" class="reset-zoom-btn">Reset View</button>
+        <button (click)="resetToFullView()" class="full-view-btn">View All</button>
+      </div>
     </div>
   `,
   styles: [`
@@ -30,11 +34,14 @@ import { ChartStyleService } from '../services/chart-style.service';
       border: 1px solid #ddd;
       border-radius: 8px;
       background: white;
+      position: relative;
     }
     
     .chart {
       width: 100%;
       min-height: 400px;
+      overflow: hidden;
+      position: relative;
     }
     
     .chart-info {
@@ -60,6 +67,36 @@ import { ChartStyleService } from '../services/chart-style.service';
       text-align: center;
       font-size: 18px;
       font-weight: 600;
+    }
+    
+    .zoom-control {
+      position: absolute;
+      top: 40px;
+      right: 25px;
+      z-index: 10;
+      display: flex;
+      gap: 5px;
+      flex-direction: column;
+    }
+    
+    .reset-zoom-btn, .full-view-btn {
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      opacity: 0.8;
+      white-space: nowrap;
+    }
+    
+    .reset-zoom-btn:hover, .full-view-btn:hover {
+      opacity: 1;
+    }
+    
+    .full-view-btn {
+      background-color: #4caf50;
     }
   `]
 })
@@ -165,7 +202,10 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
           xAxisIndex: 0,
           filterMode: 'filter',
           start: 0,
-          end: 100
+          end: 100,
+          zoomOnMouseWheel: true,
+          moveOnMouseMove: true,
+          moveOnMouseWheel: false
         },
         {
           type: 'slider',
@@ -275,12 +315,27 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
     const timeWindowMs = this.timeWindowMinutes * 60 * 1000;
     const minTime = Math.max(lastTimestamp - timeWindowMs, firstTimestamp);
     
-    // Update the x-axis range
+    // Calculate the percentage of the dataset that the time window represents
+    const totalTimeRange = lastTimestamp - firstTimestamp;
+    const windowTimeRange = lastTimestamp - minTime;
+    
+    // Calculate start and end percentages for dataZoom
+    const startPercent = Math.max(0, ((minTime - firstTimestamp) / totalTimeRange) * 100);
+    const endPercent = 100;
+    
+    // Update the dataZoom to show the time window, but don't set hard axis limits
+    // This allows users to zoom out beyond the initial time window
     this.chart.setOption({
-      xAxis: {
-        min: minTime,
-        max: lastTimestamp
-      }
+      dataZoom: [
+        {
+          start: startPercent,
+          end: endPercent
+        },
+        {
+          start: startPercent,
+          end: endPercent
+        }
+      ]
     });
   }
   
@@ -295,5 +350,35 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
         this.lastMetrics.updateTime = updateTime;
       }
     }
+  }
+
+  resetZoom(): void {
+    if (!this.chart) {
+      return;
+    }
+    
+    // Reset to the configured time window view (not full dataset)
+    // This provides a more useful "reset" that shows the default time window
+    this.applyTimeWindow();
+  }
+
+  resetToFullView(): void {
+    if (!this.chart) {
+      return;
+    }
+    
+    // Reset the dataZoom to show all data (full dataset)
+    this.chart.setOption({
+      dataZoom: [
+        {
+          start: 0,
+          end: 100
+        },
+        {
+          start: 0,
+          end: 100
+        }
+      ]
+    });
   }
 }

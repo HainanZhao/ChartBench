@@ -22,7 +22,8 @@ import { ChartStyleService } from '../services/chart-style.service';
       </div>
       <div #chartContainer class="chart" [style.height.px]="height"></div>
       <div class="zoom-control">
-        <button (click)="resetZoom()" class="reset-zoom-btn">Reset Zoom</button>
+        <button (click)="resetZoom()" class="reset-zoom-btn">Reset View</button>
+        <button (click)="resetToFullView()" class="full-view-btn">View All</button>
       </div>
     </div>
   `,
@@ -71,9 +72,12 @@ import { ChartStyleService } from '../services/chart-style.service';
       top: 40px;
       right: 25px;
       z-index: 10;
+      display: flex;
+      gap: 5px;
+      flex-direction: column;
     }
     
-    .reset-zoom-btn {
+    .reset-zoom-btn, .full-view-btn {
       background-color: #2196f3;
       color: white;
       border: none;
@@ -82,10 +86,15 @@ import { ChartStyleService } from '../services/chart-style.service';
       font-size: 12px;
       cursor: pointer;
       opacity: 0.8;
+      white-space: nowrap;
     }
     
-    .reset-zoom-btn:hover {
+    .reset-zoom-btn:hover, .full-view-btn:hover {
       opacity: 1;
+    }
+    
+    .full-view-btn {
+      background-color: #4caf50;
     }
   `]
 })
@@ -458,6 +467,17 @@ export class D3ChartComponent implements OnInit, AfterViewInit, OnChanges, OnDes
   resetZoom(): void {
     if (this.svg && this.zoom) {
       this.applyTimeWindow();
+    }
+  }
+
+  resetToFullView(): void {
+    if (this.svg && this.zoom) {
+      // Reset to show all data (full dataset)
+      // Apply identity transform to show the complete original domain
+      this.svg.select('.zoom-rect')
+        .transition()
+        .duration(300)
+        .call(this.zoom.transform, d3.zoomIdentity);
     }
   }
   

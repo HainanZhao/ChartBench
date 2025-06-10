@@ -27,7 +27,8 @@ Chart.register(zoomPlugin);
       <div style="position: relative; width: 100%; height: 400px;">
         <canvas #chartCanvas></canvas>
         <div class="zoom-control">
-          <button (click)="resetZoom()" class="reset-zoom-btn">Reset Zoom</button>
+          <button (click)="resetZoom()" class="reset-zoom-btn">Reset View</button>
+          <button (click)="resetToFullView()" class="full-view-btn">View All</button>
         </div>
       </div>
     </div>
@@ -67,9 +68,12 @@ Chart.register(zoomPlugin);
       top: 5px;
       right: 5px;
       z-index: 10;
+      display: flex;
+      gap: 5px;
+      flex-direction: column;
     }
     
-    .reset-zoom-btn {
+    .reset-zoom-btn, .full-view-btn {
       background-color: #2196f3;
       color: white;
       border: none;
@@ -78,10 +82,15 @@ Chart.register(zoomPlugin);
       font-size: 12px;
       cursor: pointer;
       opacity: 0.8;
+      white-space: nowrap;
     }
     
-    .reset-zoom-btn:hover {
+    .reset-zoom-btn:hover, .full-view-btn:hover {
       opacity: 1;
+    }
+    
+    .full-view-btn {
+      background-color: #4caf50;
     }
   `]
 })
@@ -371,6 +380,26 @@ export class ChartjsComponent implements OnInit, OnDestroy, OnChanges {
       }
       
       // Fallback to standard resetZoom if we can't set the specific time range
+      this.chart.resetZoom();
+    }
+  }
+
+  resetToFullView(): void {
+    if (this.chart) {
+      // Reset to show the complete dataset (full zoom out)
+      // Remove any zoom constraints to show all data
+      if (this.chart.options.scales && 'x' in this.chart.options.scales) {
+        const xScale = this.chart.options.scales['x'] as any;
+        if (xScale) {
+          // Clear any min/max constraints to show all data
+          delete xScale.min;
+          delete xScale.max;
+          this.chart.update('none');
+          return;
+        }
+      }
+      
+      // Fallback to standard resetZoom
       this.chart.resetZoom();
     }
   }
