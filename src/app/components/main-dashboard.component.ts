@@ -32,7 +32,7 @@ type TestType = 'static' | 'streaming';
             <h4>Static Data Benchmark</h4>
             <p>Test rendering performance with various static dataset sizes</p>
             <ul>
-              <li>Multiple data size tests (1K - 500K points)</li>
+              <li>Multiple data size tests (1K - 100K points)</li>
               <li>Multiple iterations for accuracy</li>
               <li>Comprehensive performance comparison</li>
             </ul>
@@ -45,7 +45,7 @@ type TestType = 'static' | 'streaming';
             <h4>Real-time Streaming Test</h4>
             <p>Simulate real-world stock market data streaming</p>
             <ul>
-              <li>Start with baseline data (e.g., 100K points)</li>
+              <li>Start with baseline data (e.g., 25K points)</li>
               <li>Add points in real-time (e.g., 10 points/second)</li>
               <li>Monitor CPU usage and frame rates</li>
             </ul>

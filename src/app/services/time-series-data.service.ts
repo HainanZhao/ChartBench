@@ -108,12 +108,12 @@ export class TimeSeriesDataService {
   getPresetDatasets(): { name: string, pointCount: number }[] {
     return [
       { name: 'Small (1K points)', pointCount: 1000 },
-      { name: 'Medium (10K points)', pointCount: 10000 },
-      { name: 'Large (50K points)', pointCount: 50000 },
-      { name: 'Extra Large (100K points)', pointCount: 100000 },
-      { name: 'Massive (250K points)', pointCount: 250000 },
-      { name: 'Extreme (500K points)', pointCount: 500000 },
-      { name: 'Ultra (1M points)', pointCount: 1000000 }
+      { name: 'Medium (5K points)', pointCount: 5000 },
+      { name: 'Large (10K points)', pointCount: 10000 },
+      { name: 'Extra Large (25K points)', pointCount: 25000 },
+      { name: 'Massive (50K points)', pointCount: 50000 },
+      { name: 'Extreme (100K points)', pointCount: 100000 },
+      { name: 'Extreme (250K points)', pointCount: 250000 }
     ];
   }
 }
