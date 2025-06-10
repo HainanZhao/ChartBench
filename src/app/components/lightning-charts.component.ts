@@ -90,11 +90,10 @@ import { PerformanceService } from '../services/performance.service';
     }
   `]
 })
-export class LightningChartsComponent implements OnInit, AfterViewInit, OnDestroy, OnChanges {
+export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
   @Input() dataset: BenchmarkDataset | null = null;
   @Input() height: number = 400;
-  @Input() timeWindowMinutes: number = 30; // Default to 30 minutes
   
   private readonly LIGHTNING_CHART_LICENSE = '0002-n0i9AP8MN/ezP+gV3RZRzNiQvQvBKwBJvTnrFTHppybuCwWuickxBJV+q3qyoeEBGSE4hS0aeo3pySDywrb/iIsl-MEUCIAiJOU3BrUq71LqSlRAIFAI0dKK05qBRIJYHFmBoOoIHAiEA4Y55O1QpeuEkiuVktPGLauOHc1TzxNu85/vz/eNscz8=';
   private chart: ChartXY | null = null;
@@ -109,15 +108,6 @@ export class LightningChartsComponent implements OnInit, AfterViewInit, OnDestro
     this.initChart();
   }
   
-  ngAfterViewInit(): void {
-    // Apply time window after the view is fully initialized
-    // This ensures Lightning Charts has completed its initial rendering
-    setTimeout(() => {
-      if (this.dataset && this.xAxis) {
-        this.applyTimeWindow();
-      }
-    }, 200);
-  }
   
   ngOnDestroy(): void {
     if (this.chart) {
@@ -128,11 +118,6 @@ export class LightningChartsComponent implements OnInit, AfterViewInit, OnDestro
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['dataset'] && this.chart && this.dataset) {
       this.renderChart();
-    }
-    
-    if (changes['timeWindowMinutes'] && this.chart && this.dataset) {
-      // Apply the new time window
-      this.applyTimeWindow();
     }
   }
   
@@ -158,9 +143,11 @@ export class LightningChartsComponent implements OnInit, AfterViewInit, OnDestro
     this.xAxis = this.chart.getDefaultAxisX()
       .setTitle('Time')
       .setTickStrategy(AxisTickStrategies.Time)
-      .setScrollStrategy(AxisScrollStrategies.progressive); // Enable scrolling/zooming
+      .setScrollStrategy(AxisScrollStrategies.expansion); // Use expansion instead of progressive
 
-    this.chart.getDefaultAxisY().setTitle('Value');
+    this.chart.getDefaultAxisY()
+      .setTitle('Value')
+      .setScrollStrategy(AxisScrollStrategies.expansion); // Use expansion instead of default
     
     // Add line series
     this.lineSeries = this.chart.addLineSeries();
@@ -215,27 +202,12 @@ export class LightningChartsComponent implements OnInit, AfterViewInit, OnDestro
     this.performanceService.recordMetrics(this.lastMetrics);
   }
   
-  // Apply the time window to show only the last X minutes of data
-  private applyTimeWindow(): void {
-    if (!this.xAxis || !this.dataset || !this.dataset.points.length) {
-      return;
-    }
-    
-    const points = this.dataset.points;
-    const lastTimestamp = points[points.length - 1].time;
-    const firstTimestamp = points[0].time;
-    
-    // Calculate the time window - always use the requested window
-    const requestedWindowMs = this.timeWindowMinutes * 60 * 1000;
-    const minTime = Math.max(lastTimestamp - requestedWindowMs, firstTimestamp);
-    
-    // Set the X axis interval to show the calculated time window
-    this.xAxis.setInterval({ start: minTime, end: lastTimestamp });
-  }
-  
-  // Reset zoom to the time window view
+  // Reset zoom to show all data
   resetZoom(): void {
-    this.applyTimeWindow();
+    if (this.xAxis && this.originalXRange) {
+      // Reset to show all data (full dataset)
+      this.xAxis.setInterval({ start: this.originalXRange.min, end: this.originalXRange.max });
+    }
   }
 
   resetToFullView(): void {
@@ -273,6 +245,18 @@ export class LightningChartsComponent implements OnInit, AfterViewInit, OnDestro
     // Add single point efficiently
     const newPoint = { x: point.time, y: point.value };
     this.lineSeries.add(newPoint);
+    
+    // Update the original range to include the new point for reset functionality
+    if (this.originalXRange) {
+      this.originalXRange.max = Math.max(this.originalXRange.max, point.time);
+      this.originalXRange.min = Math.min(this.originalXRange.min, point.time);
+    } else if (this.dataset.points.length > 0) {
+      // Initialize originalXRange if it doesn't exist
+      this.originalXRange = {
+        min: this.dataset.points[0].time,
+        max: point.time
+      };
+    }
     
     const endTime = this.performanceService.endTimer(startTime);
     
