@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ViewChildren, QueryList } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TimeSeriesDataService, BenchmarkDataset } from '../services/time-series-data.service';
@@ -63,6 +63,11 @@ interface StreamingMetrics {
             <label>Duration (seconds):</label>
             <input type="number" [(ngModel)]="testDuration" min="10" max="300" step="10">
           </div>
+          
+          <div class="control-group">
+            <label>Number of Charts:</label>
+            <input type="number" [(ngModel)]="numberOfCharts" min="1" max="16" step="1">
+          </div>
         </div>
         
         <div class="control-row">
@@ -95,61 +100,83 @@ interface StreamingMetrics {
 
       <div class="chart-container">
         <!-- ECharts -->
-        <div *ngIf="selectedChart === 'echarts'" class="chart-wrapper">
-          <app-echarts-benchmark 
-            #echartsComponent
-            [dataset]="currentDataset"
-            [height]="400">
-          </app-echarts-benchmark>
+        <div *ngIf="selectedChart === 'echarts'" class="chart-grid-container">
+          <div class="chart-grid">
+            <div *ngFor="let i of getNumberArray(numberOfCharts)" class="chart-wrapper">
+              <app-echarts-benchmark 
+                #echartsComponent
+                [dataset]="currentDataset"
+                [height]="getChartHeight()">
+              </app-echarts-benchmark>
+            </div>
+          </div>
         </div>
 
         <!-- Lightweight Charts -->
-        <div *ngIf="selectedChart === 'lightweight'" class="chart-wrapper">
-          <app-lightweight-charts-benchmark 
-            #lightweightChartsComponent
-            [dataset]="currentDataset"
-            [height]="400">
-          </app-lightweight-charts-benchmark>
+        <div *ngIf="selectedChart === 'lightweight'" class="chart-grid-container">
+          <div class="chart-grid">
+            <div *ngFor="let i of getNumberArray(numberOfCharts)" class="chart-wrapper">
+              <app-lightweight-charts-benchmark 
+                #lightweightChartsComponent
+                [dataset]="currentDataset"
+                [height]="getChartHeight()">
+              </app-lightweight-charts-benchmark>
+            </div>
+          </div>
         </div>
 
         <!-- Lightning Charts -->
-        <div *ngIf="selectedChart === 'lightning'" class="chart-wrapper">
-          <app-lightning-charts-benchmark 
-            #lightningChartsComponent
-            [dataset]="currentDataset"
-            [height]="400">
-          </app-lightning-charts-benchmark>
+        <div *ngIf="selectedChart === 'lightning'" class="chart-grid-container">
+          <div class="chart-grid">
+            <div *ngFor="let i of getNumberArray(numberOfCharts)" class="chart-wrapper">
+              <app-lightning-charts-benchmark 
+                #lightningChartsComponent
+                [dataset]="currentDataset"
+                [height]="getChartHeight()">
+              </app-lightning-charts-benchmark>
+            </div>
+          </div>
         </div>
 
         <!-- Chart.js -->
-        <div *ngIf="selectedChart === 'chartjs'" class="chart-wrapper">
-          <app-chartjs-benchmark 
-            #chartjsComponent
-            [dataset]="currentDataset"
-            [height]="400">
-          </app-chartjs-benchmark>
+        <div *ngIf="selectedChart === 'chartjs'" class="chart-grid-container">
+          <div class="chart-grid">
+            <div *ngFor="let i of getNumberArray(numberOfCharts)" class="chart-wrapper">
+              <app-chartjs-benchmark 
+                #chartjsComponent
+                [dataset]="currentDataset"
+                [height]="getChartHeight()">
+              </app-chartjs-benchmark>
+            </div>
+          </div>
         </div>
 
         <!-- Highcharts -->
-        <div *ngIf="selectedChart === 'highcharts'" class="chart-wrapper">
-          <app-highcharts
-            #highchartsComponent
-            [data]="currentDataset?.points || []"
-            [height]="400"
-            [title]="'Highcharts - Real-time Streaming'">
-          </app-highcharts>
+        <div *ngIf="selectedChart === 'highcharts'" class="chart-grid-container">
+          <div class="chart-grid">
+            <div *ngFor="let i of getNumberArray(numberOfCharts)" class="chart-wrapper">
+              <app-highcharts
+                #highchartsComponent
+                [data]="currentDataset?.points || []"
+                [height]="getChartHeight()"
+                [title]="'Highcharts - Real-time Streaming'">
+              </app-highcharts>
+            </div>
+          </div>
         </div>
 
         <!-- D3.js -->
-        <div *ngIf="selectedChart === 'd3'" class="chart-wrapper">
-          <app-d3-benchmark 
-            #d3ChartComponent
-            [dataset]="currentDataset"
-            [height]="400">
-          </app-d3-benchmark>
+        <div *ngIf="selectedChart === 'd3'" class="chart-grid-container">
+          <div class="chart-grid">
+            <div *ngFor="let i of getNumberArray(numberOfCharts)" class="chart-wrapper">
+              <app-d3-benchmark 
+                #d3ChartComponent
+                [dataset]="currentDataset"
+                [height]="getChartHeight()">
+              </app-d3-benchmark>
+            </div>
+          </div>
         </div>
-
-
       </div>
 
       <div class="metrics-dashboard" *ngIf="streamingMetrics.length > 0">
@@ -285,10 +312,31 @@ interface StreamingMetrics {
       margin-bottom: 20px;
     }
 
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 15px;
+      max-width: 100%;
+    }
+    
+    /* Ensure a maximum of 3 columns regardless of screen size */
+    .chart-grid-container {
+      max-width: 100%;
+      margin: 0 auto;
+    }
+    
+    @media (min-width: 1200px) {
+      .chart-grid {
+        grid-template-columns: repeat(3, minmax(400px, 1fr));
+      }
+    }
+
     .chart-wrapper {
       background: white;
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      overflow: hidden;
     }
 
     .metrics-dashboard {
@@ -351,12 +399,12 @@ interface StreamingMetrics {
   `]
 })
 export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
-  @ViewChild('echartsComponent') echartsComponent?: EchartsComponent;
-  @ViewChild('lightweightChartsComponent') lightweightChartsComponent?: LightweightChartsComponent;
-  @ViewChild('lightningChartsComponent') lightningChartsComponent?: LightningChartsComponent;
-  @ViewChild('chartjsComponent') chartjsComponent?: ChartjsComponent;
-  @ViewChild('highchartsComponent') highchartsComponent?: HighchartsComponent;
-  @ViewChild('d3ChartComponent') d3ChartComponent?: D3ChartComponent;
+  @ViewChildren('echartsComponent') echartsComponents?: QueryList<EchartsComponent>;
+  @ViewChildren('lightweightChartsComponent') lightweightChartsComponents?: QueryList<LightweightChartsComponent>;
+  @ViewChildren('lightningChartsComponent') lightningChartsComponents?: QueryList<LightningChartsComponent>;
+  @ViewChildren('chartjsComponent') chartjsComponents?: QueryList<ChartjsComponent>;
+  @ViewChildren('highchartsComponent') highchartsComponents?: QueryList<HighchartsComponent>;
+  @ViewChildren('d3ChartComponent') d3ChartComponents?: QueryList<D3ChartComponent>;
 
   @ViewChild('metricsCanvas') metricsCanvas?: any;
 
@@ -365,6 +413,7 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
   baselinePoints = 100000;
   pointsPerSecond = 10;
   testDuration = 60;
+  numberOfCharts = 9;
 
   // State
   isStreaming = false;
@@ -493,34 +542,40 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
 
     switch (this.selectedChart) {
       case 'echarts':
-        if (this.echartsComponent) {
-          await this.echartsComponent.updateChart(this.currentDataset);
+        if (this.echartsComponents && this.echartsComponents.length > 0) {
+          // Update all chart instances
+          const promises = this.echartsComponents.map(chart => chart.updateChart(this.currentDataset!));
+          await Promise.all(promises);
         }
         break;
       case 'lightweight':
-        if (this.lightweightChartsComponent) {
-          await this.lightweightChartsComponent.updateChart(this.currentDataset);
+        if (this.lightweightChartsComponents && this.lightweightChartsComponents.length > 0) {
+          const promises = this.lightweightChartsComponents.map(chart => chart.updateChart(this.currentDataset!));
+          await Promise.all(promises);
         }
         break;
       case 'lightning':
-        if (this.lightningChartsComponent) {
-          await this.lightningChartsComponent.updateChart(this.currentDataset);
+        if (this.lightningChartsComponents && this.lightningChartsComponents.length > 0) {
+          const promises = this.lightningChartsComponents.map(chart => chart.updateChart(this.currentDataset!));
+          await Promise.all(promises);
         }
         break;
       case 'chartjs':
-        if (this.chartjsComponent) {
-          await this.chartjsComponent.updateChart(this.currentDataset);
+        if (this.chartjsComponents && this.chartjsComponents.length > 0) {
+          const promises = this.chartjsComponents.map(chart => chart.updateChart(this.currentDataset!));
+          await Promise.all(promises);
         }
         break;
       case 'highcharts':
-        if (this.highchartsComponent) {
+        if (this.highchartsComponents && this.highchartsComponents.length > 0) {
           // Use efficient single-point addition instead of full data update
-          this.highchartsComponent.addPoint(newPoint, true);
+          this.highchartsComponents.forEach(chart => chart.addPoint(newPoint, true));
         }
         break;
       case 'd3':
-        if (this.d3ChartComponent) {
-          await this.d3ChartComponent.updateChart(this.currentDataset);
+        if (this.d3ChartComponents && this.d3ChartComponents.length > 0) {
+          const promises = this.d3ChartComponents.map(chart => chart.updateChart(this.currentDataset!));
+          await Promise.all(promises);
         }
         break;
     }
@@ -531,34 +586,39 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
 
     switch (this.selectedChart) {
       case 'echarts':
-        if (this.echartsComponent) {
-          await this.echartsComponent.updateChart(this.currentDataset);
+        if (this.echartsComponents && this.echartsComponents.length > 0) {
+          const promises = this.echartsComponents.map(chart => chart.updateChart(this.currentDataset!));
+          await Promise.all(promises);
         }
         break;
       case 'lightweight':
-        if (this.lightweightChartsComponent) {
-          await this.lightweightChartsComponent.updateChart(this.currentDataset);
+        if (this.lightweightChartsComponents && this.lightweightChartsComponents.length > 0) {
+          const promises = this.lightweightChartsComponents.map(chart => chart.updateChart(this.currentDataset!));
+          await Promise.all(promises);
         }
         break;
       case 'lightning':
-        if (this.lightningChartsComponent) {
-          await this.lightningChartsComponent.updateChart(this.currentDataset);
+        if (this.lightningChartsComponents && this.lightningChartsComponents.length > 0) {
+          const promises = this.lightningChartsComponents.map(chart => chart.updateChart(this.currentDataset!));
+          await Promise.all(promises);
         }
         break;
       case 'chartjs':
-        if (this.chartjsComponent) {
-          await this.chartjsComponent.updateChart(this.currentDataset);
+        if (this.chartjsComponents && this.chartjsComponents.length > 0) {
+          const promises = this.chartjsComponents.map(chart => chart.updateChart(this.currentDataset!));
+          await Promise.all(promises);
         }
         break;
       case 'highcharts':
-        if (this.highchartsComponent) {
+        if (this.highchartsComponents && this.highchartsComponents.length > 0) {
           // Use the optimized updateData method which handles streaming efficiently
-          this.highchartsComponent.updateData(this.currentDataset.points);
+          this.highchartsComponents.forEach(chart => chart.updateData(this.currentDataset!.points));
         }
         break;
       case 'd3':
-        if (this.d3ChartComponent) {
-          await this.d3ChartComponent.updateChart(this.currentDataset);
+        if (this.d3ChartComponents && this.d3ChartComponents.length > 0) {
+          const promises = this.d3ChartComponents.map(chart => chart.updateChart(this.currentDataset!));
+          await Promise.all(promises);
         }
         break;
     }
@@ -568,28 +628,75 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
     const memoryInfo = (performance as any).memory;
     const memoryUsage = memoryInfo ? Math.round(memoryInfo.usedJSHeapSize / 1024 / 1024) : 0;
     
-    // Simulate CPU usage based on render performance
-    let renderTime = 0;
+    // Collect render times from all chart instances and calculate the average
+    let totalRenderTime = 0;
+    let count = 0;
+    
     switch (this.selectedChart) {
       case 'echarts':
-        renderTime = this.echartsComponent?.lastMetrics?.renderTime || 0;
+        if (this.echartsComponents && this.echartsComponents.length > 0) {
+          this.echartsComponents.forEach(chart => {
+            if (chart.lastMetrics?.renderTime) {
+              totalRenderTime += chart.lastMetrics.renderTime;
+              count++;
+            }
+          });
+        }
         break;
       case 'lightweight':
-        renderTime = this.lightweightChartsComponent?.lastMetrics?.renderTime || 0;
+        if (this.lightweightChartsComponents && this.lightweightChartsComponents.length > 0) {
+          this.lightweightChartsComponents.forEach(chart => {
+            if (chart.lastMetrics?.renderTime) {
+              totalRenderTime += chart.lastMetrics.renderTime;
+              count++;
+            }
+          });
+        }
         break;
       case 'lightning':
-        renderTime = this.lightningChartsComponent?.lastMetrics?.renderTime || 0;
+        if (this.lightningChartsComponents && this.lightningChartsComponents.length > 0) {
+          this.lightningChartsComponents.forEach(chart => {
+            if (chart.lastMetrics?.renderTime) {
+              totalRenderTime += chart.lastMetrics.renderTime;
+              count++;
+            }
+          });
+        }
         break;
       case 'chartjs':
-        renderTime = this.chartjsComponent?.lastMetrics?.renderTime || 0;
+        if (this.chartjsComponents && this.chartjsComponents.length > 0) {
+          this.chartjsComponents.forEach(chart => {
+            if (chart.lastMetrics?.renderTime) {
+              totalRenderTime += chart.lastMetrics.renderTime;
+              count++;
+            }
+          });
+        }
         break;
       case 'highcharts':
-        renderTime = this.highchartsComponent?.lastRenderTime || 0;
+        if (this.highchartsComponents && this.highchartsComponents.length > 0) {
+          this.highchartsComponents.forEach(chart => {
+            if (chart.lastRenderTime) {
+              totalRenderTime += chart.lastRenderTime;
+              count++;
+            }
+          });
+        }
         break;
       case 'd3':
-        renderTime = this.d3ChartComponent?.lastMetrics?.renderTime || 0;
+        if (this.d3ChartComponents && this.d3ChartComponents.length > 0) {
+          this.d3ChartComponents.forEach(chart => {
+            if (chart.lastMetrics?.renderTime) {
+              totalRenderTime += chart.lastMetrics.renderTime;
+              count++;
+            }
+          });
+        }
         break;
     }
+    
+    // Calculate average render time
+    const renderTime = count > 0 ? totalRenderTime / count : 0;
 
     // Simulate CPU usage (higher render time = higher CPU usage)
     this.currentCPU = Math.min(100, Math.round((renderTime / 50) * 100));
@@ -629,5 +736,19 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
     if (this.streamingMetrics.length === 0) return 0;
     // Count frames where render time > 16.67ms (60 FPS threshold)
     return this.streamingMetrics.filter(m => m.renderTime > 16.67).length;
+  }
+
+  // Helper method to generate an array of numbers for ngFor
+  getNumberArray(count: number): number[] {
+    return Array.from({ length: count }, (_, i) => i);
+  }
+
+  // Calculate chart height based on number of charts
+  getChartHeight(): number {
+    if (this.numberOfCharts <= 1) return 500;
+    if (this.numberOfCharts <= 3) return 450;
+    if (this.numberOfCharts <= 6) return 400;
+    if (this.numberOfCharts <= 9) return 350;
+    return 300; // For more than 9 charts
   }
 }
