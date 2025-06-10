@@ -1,11 +1,11 @@
 import { Component } from '@angular/core';
-import { BenchmarkDashboardComponent } from './components/benchmark-dashboard.component';
+import { MainDashboardComponent } from './components/main-dashboard.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [BenchmarkDashboardComponent],
-  template: '<app-benchmark-dashboard></app-benchmark-dashboard>',
+  imports: [MainDashboardComponent],
+  template: '<app-main-dashboard></app-main-dashboard>',
   styleUrl: './app.component.scss'
 })
 export class AppComponent {

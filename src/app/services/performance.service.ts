@@ -25,6 +25,10 @@ export interface BenchmarkResult {
 export class PerformanceService {
   private results: Map<string, PerformanceMetrics[]> = new Map();
   
+  // CPU monitoring utilities
+  private frameTimings: number[] = [];
+  private cpuUsageHistory: number[] = [];
+
   startTimer(): number {
     return performance.now();
   }
@@ -86,6 +90,88 @@ export class PerformanceService {
   
   clearResults(): void {
     this.results.clear();
+  }
+  
+  // CPU monitoring methods
+  startCPUMonitoring(): void {
+    this.frameTimings = [];
+    this.cpuUsageHistory = [];
+  }
+
+  recordFrameTime(frameTime: number): void {
+    this.frameTimings.push(frameTime);
+    
+    // Keep only last 60 frames for CPU calculation
+    if (this.frameTimings.length > 60) {
+      this.frameTimings = this.frameTimings.slice(-60);
+    }
+    
+    // Calculate CPU usage based on frame times
+    // Higher frame times indicate higher CPU usage
+    const avgFrameTime = this.frameTimings.reduce((a, b) => a + b, 0) / this.frameTimings.length;
+    const cpuUsage = Math.min(100, (avgFrameTime / 16.67) * 100); // 16.67ms = 60 FPS
+    this.cpuUsageHistory.push(cpuUsage);
+    
+    if (this.cpuUsageHistory.length > 100) {
+      this.cpuUsageHistory = this.cpuUsageHistory.slice(-100);
+    }
+  }
+
+  getCurrentCPUUsage(): number {
+    if (this.cpuUsageHistory.length === 0) return 0;
+    return this.cpuUsageHistory[this.cpuUsageHistory.length - 1];
+  }
+
+  getAverageCPUUsage(): number {
+    if (this.cpuUsageHistory.length === 0) return 0;
+    return this.cpuUsageHistory.reduce((a, b) => a + b, 0) / this.cpuUsageHistory.length;
+  }
+
+  // Enhanced memory monitoring
+  getDetailedMemoryInfo(): any {
+    if ('memory' in performance) {
+      const memInfo = (performance as any).memory;
+      return {
+        used: Math.round(memInfo.usedJSHeapSize / 1024 / 1024),
+        total: Math.round(memInfo.totalJSHeapSize / 1024 / 1024),
+        limit: Math.round(memInfo.jsHeapSizeLimit / 1024 / 1024),
+        percentage: Math.round((memInfo.usedJSHeapSize / memInfo.jsHeapSizeLimit) * 100)
+      };
+    }
+    return { used: 0, total: 0, limit: 0, percentage: 0 };
+  }
+
+  // Performance profiling
+  profileRenderingPerformance(renderFunction: () => Promise<void>): Promise<{
+    renderTime: number;
+    frameTime: number;
+    memoryDelta: number;
+  }> {
+    return new Promise(async (resolve) => {
+      const startMemory = this.getMemoryUsage();
+      const startTime = performance.now();
+      
+      // Record frame start
+      const frameStart = performance.now();
+      
+      await renderFunction();
+      
+      // Wait for next frame to ensure rendering is complete
+      requestAnimationFrame(() => {
+        const endTime = performance.now();
+        const frameTime = endTime - frameStart;
+        const renderTime = endTime - startTime;
+        const endMemory = this.getMemoryUsage();
+        
+        this.recordFrameTime(frameTime);
+        
+        resolve({
+          renderTime,
+          frameTime,
+          memoryDelta: endMemory - startMemory
+        });
+      });
+    });
   }
   
   getMemoryUsage(): number {
