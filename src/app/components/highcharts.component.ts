@@ -154,7 +154,14 @@ export class HighchartsComponent implements OnInit, OnDestroy, OnChanges {
           animation: false, // Disable animations for performance
           renderTo: this.chartContainer.nativeElement,
           height: this.height,
-          spacing: [10, 10, 10, 10]
+          spacing: [10, 10, 10, 10],
+          // Add zoom and pan capabilities
+          zooming: {
+            type: 'x'
+          },
+          panning: {
+            enabled: true
+          }
         },
         title: {
           text: this.title,
@@ -172,7 +179,10 @@ export class HighchartsComponent implements OnInit, OnDestroy, OnChanges {
             }
           },
           gridLineColor: style.gridColor,
-          lineColor: style.gridColor
+          lineColor: style.gridColor,
+          // Add zoom capabilities
+          minRange: 60 * 1000, // Allow zooming to 1-minute intervals at minimum
+          ordinal: false
         },
         yAxis: {
           title: {
@@ -194,9 +204,12 @@ export class HighchartsComponent implements OnInit, OnDestroy, OnChanges {
         },
         tooltip: {
           enabled: this.data.length < 10000, // Disable tooltips for large datasets
-          formatter: function() {
-            return `<b>Time:</b> ${Highcharts.dateFormat('%Y-%m-%d %H:%M', this.x as number)}<br/>
-                    <b>Value:</b> ${(this.y as number).toFixed(2)}`;
+          formatter: function(this: any): string {
+            if (this.x !== undefined && this.y !== undefined) {
+              return `<b>Time:</b> ${Highcharts.dateFormat('%Y-%m-%d %H:%M:%S', this.x)}<br/>
+                    <b>Value:</b> ${this.y.toFixed(2)}`;
+            }
+            return '';
           }
         },
         plotOptions: {

@@ -4,6 +4,10 @@ import { Chart } from 'chart.js/auto';
 import { BenchmarkDataset } from '../services/time-series-data.service';
 import { PerformanceService } from '../services/performance.service';
 import 'chartjs-adapter-date-fns';
+import zoomPlugin from 'chartjs-plugin-zoom';
+
+// Register zoom plugin
+Chart.register(zoomPlugin);
 
 @Component({
   selector: 'app-chartjs-benchmark',
@@ -153,6 +157,24 @@ export class ChartjsComponent implements OnInit, OnDestroy, OnChanges {
         plugins: {
           legend: {
             display: false
+          },
+          zoom: {
+            pan: {
+              enabled: true,
+              mode: 'x'
+            },
+            zoom: {
+              wheel: {
+                enabled: true
+              },
+              pinch: {
+                enabled: true
+              },
+              mode: 'x',
+              onZoomComplete: function() {
+                console.log('Zoom completed');
+              }
+            }
           }
         }
       }
