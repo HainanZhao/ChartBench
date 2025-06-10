@@ -44,8 +44,6 @@ interface StreamingMetrics {
   template: `
     <div class="streaming-benchmark">
       <div class="controls">
-        <h3>Real-time Streaming Test (Stock Market Simulation)</h3>
-
         <div class="control-row">
           <div class="control-group">
             <label>Chart Library:</label>
@@ -116,26 +114,26 @@ interface StreamingMetrics {
               (change)="onTimeWindowChange()"
             />
           </div>
-        </div>
 
-        <div class="control-row">
-          <button
-            (click)="startStreaming()"
-            [disabled]="isStreaming"
-            class="btn btn-primary"
-          >
-            {{ isStreaming ? 'Streaming...' : 'Start Streaming Test' }}
-          </button>
-          <button
-            (click)="stopStreaming()"
-            [disabled]="!isStreaming"
-            class="btn btn-secondary"
-          >
-            Stop Test
-          </button>
-          <button (click)="clearMetrics()" class="btn btn-secondary">
-            Clear Metrics
-          </button>
+          <div class="control-group button-group">
+            <button
+              (click)="startStreaming()"
+              [disabled]="isStreaming"
+              class="btn btn-primary"
+            >
+              {{ isStreaming ? 'Streaming...' : 'Start Streaming Test' }}
+            </button>
+            <button
+              (click)="stopStreaming()"
+              [disabled]="!isStreaming"
+              class="btn btn-secondary"
+            >
+              Stop Test
+            </button>
+            <button (click)="clearMetrics()" class="btn btn-secondary">
+              Clear Metrics
+            </button>
+          </div>
         </div>
       </div>
 
@@ -361,6 +359,16 @@ interface StreamingMetrics {
 
       .control-subgroup input[type='number'] {
         width: 70px;
+      }
+
+      .button-group {
+        flex-direction: row !important;
+        gap: 10px !important;
+        align-items: flex-end;
+      }
+
+      .button-group label {
+        display: none;
       }
 
       .btn {

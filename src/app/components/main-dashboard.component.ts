@@ -23,7 +23,6 @@ type TestType = 'static' | 'streaming';
       </div>
 
       <div class="test-selector">
-        <h3>Select Test Type</h3>
         <div class="test-options-container">
           <div class="test-options">
             <div class="test-option" 
@@ -290,14 +289,14 @@ type TestType = 'static' | 'streaming';
     .test-option {
       border: 1px solid #e2e8f0;
       border-radius: 20px;
-      padding: 20px;
+      padding: 16px;
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       background: #f8fafc;
       position: relative;
       display: flex;
       flex-direction: column;
-      height: 100%;
+      min-height: 280px;
       overflow: hidden;
     }
 
@@ -382,15 +381,15 @@ type TestType = 'static' | 'streaming';
     .test-option ul {
       list-style: none;
       padding: 0;
-      margin: 0 0 25px 0;
+      margin: 0 0 20px 0;
       flex-grow: 1;
     }
 
     .test-option li {
-      padding: 8px 0 8px 32px;
+      padding: 6px 0 6px 32px;
       position: relative;
-      font-size: 1rem;
-      line-height: 1.5;
+      font-size: 0.9rem;
+      line-height: 1.4;
       color: #4a5568;
     }
 
@@ -417,7 +416,7 @@ type TestType = 'static' | 'streaming';
     .cta-button {
       background: rgba(66, 153, 225, 0.1);
       color: #4b6cb7;
-      padding: 14px 20px;
+      padding: 12px 18px;
       border-radius: 12px;
       font-weight: 600;
       text-align: center;
