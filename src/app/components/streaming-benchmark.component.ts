@@ -7,6 +7,8 @@ import { EchartsComponent } from './echarts.component';
 import { LightweightChartsComponent } from './lightweight-charts.component';
 import { LightningChartsComponent } from './lightning-charts.component';
 import { ChartjsComponent } from './chartjs.component';
+import { HighchartsComponent } from './highcharts.component';
+import { AGChartsComponent } from './ag-charts.component';
 
 interface StreamingMetrics {
   timestamp: number;
@@ -25,7 +27,9 @@ interface StreamingMetrics {
     EchartsComponent,
     LightweightChartsComponent,
     LightningChartsComponent,
-    ChartjsComponent
+    ChartjsComponent,
+    HighchartsComponent,
+    AGChartsComponent
   ],
   template: `
     <div class="streaming-benchmark">
@@ -40,6 +44,8 @@ interface StreamingMetrics {
               <option value="lightweight">TradingView Lightweight Charts</option>
               <option value="lightning">LightningChart</option>
               <option value="chartjs">Chart.js</option>
+              <option value="highcharts">Highcharts</option>
+              <option value="agcharts">AG Charts</option>
             </select>
           </div>
           
@@ -122,6 +128,26 @@ interface StreamingMetrics {
             [dataset]="currentDataset"
             [height]="400">
           </app-chartjs-benchmark>
+        </div>
+
+        <!-- Highcharts -->
+        <div *ngIf="selectedChart === 'highcharts'" class="chart-wrapper">
+          <app-highcharts
+            #highchartsComponent
+            [data]="currentDataset?.points || []"
+            [height]="400"
+            [title]="'Highcharts - Real-time Streaming'">
+          </app-highcharts>
+        </div>
+
+        <!-- AG Charts -->
+        <div *ngIf="selectedChart === 'agcharts'" class="chart-wrapper">
+          <app-ag-charts
+            #agChartsComponent
+            [data]="currentDataset?.points || []"
+            [height]="400"
+            [title]="'AG Charts - Real-time Streaming'">
+          </app-ag-charts>
         </div>
       </div>
 
@@ -328,6 +354,8 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
   @ViewChild('lightweightChartsComponent') lightweightChartsComponent?: LightweightChartsComponent;
   @ViewChild('lightningChartsComponent') lightningChartsComponent?: LightningChartsComponent;
   @ViewChild('chartjsComponent') chartjsComponent?: ChartjsComponent;
+  @ViewChild('highchartsComponent') highchartsComponent?: HighchartsComponent;
+  @ViewChild('agChartsComponent') agChartsComponent?: AGChartsComponent;
   @ViewChild('metricsCanvas') metricsCanvas?: any;
 
   // Configuration
@@ -481,6 +509,16 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
           await this.chartjsComponent.updateChart(this.currentDataset);
         }
         break;
+      case 'highcharts':
+        if (this.highchartsComponent) {
+          this.highchartsComponent.updateData(this.currentDataset.points);
+        }
+        break;
+      case 'agcharts':
+        if (this.agChartsComponent) {
+          this.agChartsComponent.updateData(this.currentDataset.points);
+        }
+        break;
     }
   }
 
@@ -502,6 +540,12 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
         break;
       case 'chartjs':
         renderTime = this.chartjsComponent?.lastMetrics?.renderTime || 0;
+        break;
+      case 'highcharts':
+        renderTime = this.highchartsComponent?.lastRenderTime || 0;
+        break;
+      case 'agcharts':
+        renderTime = this.agChartsComponent?.lastRenderTime || 0;
         break;
     }
 

@@ -7,6 +7,8 @@ import { EchartsComponent } from '../components/echarts.component';
 import { LightweightChartsComponent } from '../components/lightweight-charts.component';
 import { LightningChartsComponent } from '../components/lightning-charts.component';
 import { ChartjsComponent } from '../components/chartjs.component';
+import { HighchartsComponent } from '../components/highcharts.component';
+import { AGChartsComponent } from '../components/ag-charts.component';
 
 @Component({
   selector: 'app-benchmark-dashboard',
@@ -17,7 +19,9 @@ import { ChartjsComponent } from '../components/chartjs.component';
     EchartsComponent,
     LightweightChartsComponent,
     LightningChartsComponent,
-    ChartjsComponent
+    ChartjsComponent,
+    HighchartsComponent,
+    AGChartsComponent
   ],
   template: `
     <div class="dashboard">
@@ -46,40 +50,52 @@ import { ChartjsComponent } from '../components/chartjs.component';
         <p>{{ progressText }}</p>
       </div>
 
-      <table class="charts-container" *ngIf="currentDataset">
-        <tr>
-          <td>
-            <app-echarts-benchmark 
-              #echartsComponent
-              [dataset]="currentDataset"
-              [height]="400">
-            </app-echarts-benchmark>
-          </td>
-          <td>
-            <app-lightweight-charts-benchmark 
-              #lightweightChartsComponent
-              [dataset]="currentDataset"
-              [height]="400">
-            </app-lightweight-charts-benchmark>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <app-lightning-charts-benchmark 
-              #lightningChartsComponent
-              [dataset]="currentDataset"
-              [height]="400">
-            </app-lightning-charts-benchmark>
-          </td>
-          <td>
-            <app-chartjs-benchmark 
-              #chartjsComponent
-              [dataset]="currentDataset"
-              [height]="400">
-            </app-chartjs-benchmark>
-          </td>
-        </tr>
-      </table>
+      <div class="charts-container" *ngIf="currentDataset">
+        <div class="chart-item">
+          <app-echarts-benchmark 
+            #echartsComponent
+            [dataset]="currentDataset"
+            [height]="400">
+          </app-echarts-benchmark>
+        </div>
+        <div class="chart-item">
+          <app-lightweight-charts-benchmark 
+            #lightweightChartsComponent
+            [dataset]="currentDataset"
+            [height]="400">
+          </app-lightweight-charts-benchmark>
+        </div>
+        <div class="chart-item">
+          <app-lightning-charts-benchmark 
+            #lightningChartsComponent
+            [dataset]="currentDataset"
+            [height]="400">
+          </app-lightning-charts-benchmark>
+        </div>
+        <div class="chart-item">
+          <app-chartjs-benchmark 
+            #chartjsComponent
+            [dataset]="currentDataset"
+            [height]="400">
+          </app-chartjs-benchmark>
+        </div>
+        <div class="chart-item">
+          <app-highcharts
+            #highchartsComponent
+            [data]="currentDataset.points || []"
+            [height]="400"
+            [title]="'Highcharts - ' + (currentDataset.name || '')">
+          </app-highcharts>
+        </div>
+        <div class="chart-item">
+          <app-ag-charts
+            #agChartsComponent
+            [data]="currentDataset.points || []"
+            [height]="400"
+            [title]="'AG Charts - ' + (currentDataset.name || '')">
+          </app-ag-charts>
+        </div>
+      </div>
 
       <div class="results-section" *ngIf="benchmarkResults.length > 0">
         <h2>Benchmark Results</h2>
@@ -243,29 +259,58 @@ import { ChartjsComponent } from '../components/chartjs.component';
     }
 
     .charts-container {
-      width: 100%;
-      border-spacing: 20px;
-      border-collapse: separate;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr); /* 3 equal columns */
+      gap: 15px;
       margin-bottom: 30px;
+      width: 100%;
+      box-sizing: border-box;
     }
 
-    .charts-container td {
-      width: 50%;
-      min-width: 500px;
-      vertical-align: top;
+    .chart-item {
+      /* Each chart item takes full width of its grid cell */
+      width: 100%;
+      box-sizing: border-box;
+      overflow: hidden;
     }
 
-    @media (max-width: 1199px) {
-      .charts-container, 
-      .charts-container tbody,
-      .charts-container tr,
-      .charts-container td {
-        display: block;
-        width: 100%;
+    /* Tablet view: 2 columns when container is too narrow for 3 equal columns */
+    @media (max-width: 1400px) and (min-width: 800px) {
+      .charts-container {
+        grid-template-columns: repeat(2, 1fr); /* 2 equal columns */
+        gap: 10px;
+      }
+    }
+
+    /* Force 2-column layout when screen is too narrow for 3 equal columns */
+    @media (max-width: 1320px) and (min-width: 800px) {
+      .charts-container tr:first-child {
+        display: table-row;
       }
       
-      .charts-container td {
-        margin-bottom: 20px;
+      .charts-container tr:first-child td:nth-child(3) {
+        display: none;
+      }
+      
+      .charts-container tr:first-child td {
+        width: 50%;
+      }
+      
+      .charts-container tr:last-child td:nth-child(1) {
+        width: 50%;
+      }
+      
+      .charts-container tr:last-child td:nth-child(2),
+      .charts-container tr:last-child td:nth-child(3) {
+        width: 25%;
+      }
+    }
+
+    /* Mobile view: single column */
+    @media (max-width: 799px) {
+      .charts-container {
+        grid-template-columns: 1fr; /* Single column */
+        gap: 20px;
       }
     }
 
@@ -369,6 +414,8 @@ export class BenchmarkDashboardComponent implements OnInit {
   @ViewChild('lightweightChartsComponent') lightweightChartsComponent!: LightweightChartsComponent;
   @ViewChild('lightningChartsComponent') lightningChartsComponent!: LightningChartsComponent;
   @ViewChild('chartjsComponent') chartjsComponent!: ChartjsComponent;
+  @ViewChild('highchartsComponent') highchartsComponent!: HighchartsComponent;
+  @ViewChild('agChartsComponent') agChartsComponent!: AGChartsComponent;
 
   datasetPresets = this.timeSeriesDataService.getPresetDatasets();
   selectedDatasetSize = 1000;
@@ -463,6 +510,26 @@ export class BenchmarkDashboardComponent implements OnInit {
             iterationResults['Chart.js'].push(this.chartjsComponent.lastMetrics.renderTime);
           }
         }
+
+        await this.delay(100);
+
+        if (this.highchartsComponent) {
+          const result = await this.highchartsComponent.renderChart();
+          if (result.renderTime > 0) {
+            if (!iterationResults['Highcharts']) iterationResults['Highcharts'] = [];
+            iterationResults['Highcharts'].push(result.renderTime);
+          }
+        }
+
+        await this.delay(100);
+
+        if (this.agChartsComponent) {
+          const result = await this.agChartsComponent.renderChart();
+          if (result.renderTime > 0) {
+            if (!iterationResults['AG Charts']) iterationResults['AG Charts'] = [];
+            iterationResults['AG Charts'].push(result.renderTime);
+          }
+        }
       }
 
       // Calculate and record averages for each chart library
@@ -521,6 +588,12 @@ export class BenchmarkDashboardComponent implements OnInit {
     }
     if (this.chartjsComponent) {
       await this.chartjsComponent.updateChart(dataset);
+    }
+    if (this.highchartsComponent) {
+      this.highchartsComponent.updateData(dataset.points);
+    }
+    if (this.agChartsComponent) {
+      this.agChartsComponent.updateData(dataset.points);
     }
   }
 
