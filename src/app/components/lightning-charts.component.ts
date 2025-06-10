@@ -1,6 +1,6 @@
 import { Component, ElementRef, Input, OnDestroy, OnInit, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { lightningChart, LightningChart, LineSeries, ChartXY } from '@lightningchart/lcjs';
+import { lightningChart, LightningChart, LineSeries, ChartXY, Axis, AxisTickStrategies, AxisScrollStrategies } from '@lightningchart/lcjs';
 import { BenchmarkDataset } from '../services/time-series-data.service';
 import { PerformanceService } from '../services/performance.service';
 
@@ -20,6 +20,9 @@ import { PerformanceService } from '../services/performance.service';
         {{ dataset.name }} ({{ dataset.pointCount.toLocaleString() }} points)
       </div>
       <div #chartContainer class="chart" [style.height.px]="height"></div>
+      <div class="zoom-control">
+        <button (click)="resetZoom()" class="reset-zoom-btn">Reset Zoom</button>
+      </div>
     </div>
   `,
   styles: [`
@@ -28,6 +31,7 @@ import { PerformanceService } from '../services/performance.service';
       border: 1px solid #ddd;
       border-radius: 8px;
       background: white;
+      position: relative;
     }
     
     .chart {
@@ -53,16 +57,41 @@ import { PerformanceService } from '../services/performance.service';
       margin: 0 0 10px 0;
       color: #333;
     }
+    
+    .zoom-control {
+      position: absolute;
+      top: 40px;
+      right: 25px;
+      z-index: 10;
+    }
+    
+    .reset-zoom-btn {
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+    
+    .reset-zoom-btn:hover {
+      opacity: 1;
+    }
   `]
 })
 export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
   @Input() dataset: BenchmarkDataset | null = null;
   @Input() height: number = 400;
+  @Input() timeWindowMinutes: number = 30; // Default to 30 minutes
   
   private readonly LIGHTNING_CHART_LICENSE = '0002-n0i9AP8MN/ezP+gV3RZRzNiQvQvBKwBJvTnrFTHppybuCwWuickxBJV+q3qyoeEBGSE4hS0aeo3pySDywrb/iIsl-MEUCIAiJOU3BrUq71LqSlRAIFAI0dKK05qBRIJYHFmBoOoIHAiEA4Y55O1QpeuEkiuVktPGLauOHc1TzxNu85/vz/eNscz8=';
   private chart: ChartXY | null = null;
   private lineSeries: LineSeries | null = null;
+  private xAxis: Axis | null = null; // Store reference to X axis for zooming
+  private originalXRange: { min: number, max: number } | null = null; // Store original X range for reset
   lastMetrics: any = null;
   
   constructor(public performanceService: PerformanceService) {}
@@ -81,6 +110,11 @@ export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
     if (changes['dataset'] && this.chart && this.dataset) {
       this.renderChart();
     }
+    
+    if (changes['timeWindowMinutes'] && this.chart && this.dataset) {
+      // Apply the new time window
+      this.applyTimeWindow();
+    }
   }
   
   private initChart(): void {
@@ -92,7 +126,7 @@ export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
       licenseInformation: {
         appTitle: "LightningChart JS Trial",
         company: "LightningChart Ltd."
-    },
+      },
     }).ChartXY({
       container: this.chartContainer.nativeElement
     });
@@ -102,7 +136,11 @@ export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
     this.chart.setPadding({ left: 60, right: 20, top: 20, bottom: 40 });
     
     // Configure axes
-    this.chart.getDefaultAxisX().setTitle('Time');
+    this.xAxis = this.chart.getDefaultAxisX()
+      .setTitle('Time')
+      .setTickStrategy(AxisTickStrategies.Time)
+      .setScrollStrategy(AxisScrollStrategies.progressive); // Enable scrolling/zooming
+
     this.chart.getDefaultAxisY().setTitle('Value');
     
     // Add line series
@@ -132,9 +170,20 @@ export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
     this.lineSeries.clear();
     this.lineSeries.add(data);
     
+    // Store the original range for reset zoom
+    if (data.length > 0) {
+      this.originalXRange = {
+        min: data[0].x,
+        max: data[data.length - 1].x
+      };
+    }
+    
     // Fit chart to data
     this.chart?.getDefaultAxisX().fit();
     this.chart?.getDefaultAxisY().fit();
+    
+    // Apply time window
+    this.applyTimeWindow();
     
     const renderTime = this.performanceService.endTimer(renderStartTime);
     
@@ -148,6 +197,29 @@ export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
     };
     
     this.performanceService.recordMetrics(this.lastMetrics);
+  }
+  
+  // Apply the time window to show only the last X minutes of data
+  private applyTimeWindow(): void {
+    if (!this.xAxis || !this.dataset || !this.dataset.points.length) {
+      return;
+    }
+    
+    const points = this.dataset.points;
+    const lastTimestamp = points[points.length - 1].time;
+    const firstTimestamp = points[0].time;
+    
+    // Calculate the time window
+    const timeWindowMs = this.timeWindowMinutes * 60 * 1000;
+    const minTime = Math.max(lastTimestamp - timeWindowMs, firstTimestamp);
+    
+    // Set the X axis interval to show only the time window
+    this.xAxis.setInterval({ start: minTime, end: lastTimestamp });
+  }
+  
+  // Reset zoom to the time window view
+  resetZoom(): void {
+    this.applyTimeWindow();
   }
   
   updateChart(newDataset: BenchmarkDataset): void {

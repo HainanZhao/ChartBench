@@ -27,6 +27,9 @@ export interface HighchartsRenderingResult {
         Dataset ({{ pointCount.toLocaleString() }} points)
       </div>
       <div #chartContainer class="chart" [style.height.px]="height"></div>
+      <div class="zoom-control">
+        <button (click)="resetZoom()" class="reset-zoom-btn">Reset Zoom</button>
+      </div>
     </div>
   `,
   styles: [`
@@ -36,6 +39,7 @@ export interface HighchartsRenderingResult {
       border: 1px solid #ddd;
       border-radius: 8px;
       background: white;
+      position: relative;
     }
     
     .chart {
@@ -67,12 +71,35 @@ export interface HighchartsRenderingResult {
       font-size: 18px;
       font-weight: 600;
     }
+    
+    .zoom-control {
+      position: absolute;
+      top: 40px;
+      right: 25px;
+      z-index: 10;
+    }
+    
+    .reset-zoom-btn {
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+    
+    .reset-zoom-btn:hover {
+      opacity: 1;
+    }
   `]
 })
 export class HighchartsComponent implements OnInit, OnDestroy, OnChanges {
   @Input() data: TimeSeriesPoint[] = [];
   @Input() height: number = 400;
   @Input() title: string = 'Highcharts Performance Test';
+  @Input() timeWindowMinutes: number = 30; // Default to 30 minutes
 
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
 
@@ -115,6 +142,11 @@ export class HighchartsComponent implements OnInit, OnDestroy, OnChanges {
         // If no chart exists yet, create one
         this.renderChart();
       }
+    }
+    
+    if (changes['timeWindowMinutes'] && this.chart) {
+      // Apply the new time window
+      this.applyTimeWindow();
     }
   }
 
@@ -251,6 +283,9 @@ export class HighchartsComponent implements OnInit, OnDestroy, OnChanges {
           requestAnimationFrame(() => {
             this.chart = Highcharts.chart(this.chartContainer.nativeElement, options);
             
+            // Apply time window after chart is created
+            this.applyTimeWindow();
+            
             const endTime = performance.now();
             this.lastRenderTime = Math.round(endTime - startTime);
 
@@ -302,6 +337,9 @@ export class HighchartsComponent implements OnInit, OnDestroy, OnChanges {
         this.chart.series[0].setData(chartData, true); // true = redraw immediately
       }
       
+      // Apply time window after data update
+      this.applyTimeWindow();
+      
       const endTime = performance.now();
       this.lastRenderTime = Math.round(endTime - startTime);
     } catch (error) {
@@ -339,6 +377,9 @@ export class HighchartsComponent implements OnInit, OnDestroy, OnChanges {
       this.chart.redraw();
       this.pointCount = newDataLength;
       
+      // Apply time window after adding new points
+      this.applyTimeWindow();
+      
       // Measure and update streaming render time
       const endTime = performance.now();
       this.lastRenderTime = Math.round(endTime - startTime);
@@ -358,6 +399,29 @@ export class HighchartsComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  // Apply the time window to show only the last X minutes of data
+  private applyTimeWindow(): void {
+    if (!this.chart || !this.data || this.data.length === 0) {
+      return;
+    }
+    
+    // Calculate time window
+    const lastTimestamp = this.data[this.data.length - 1].time;
+    const firstTimestamp = this.data[0].time;
+    const timeWindowMs = this.timeWindowMinutes * 60 * 1000;
+    const minTime = Math.max(lastTimestamp - timeWindowMs, firstTimestamp);
+    
+    // Set the x-axis extremes to show only the time window
+    if (this.chart.xAxis && this.chart.xAxis[0]) {
+      this.chart.xAxis[0].setExtremes(minTime, lastTimestamp);
+    }
+  }
+  
+  // Reset zoom to show the time window
+  resetZoom(): void {
+    this.applyTimeWindow();
+  }
+
   addPoint(point: TimeSeriesPoint, redraw: boolean = true): void {
     if (!this.isBrowser || !this.chart || !this.chart.series || this.chart.series.length === 0) {
       return;
@@ -374,8 +438,11 @@ export class HighchartsComponent implements OnInit, OnDestroy, OnChanges {
     this.data.push(point);
     this.pointCount = this.data.length;
     
-    // Measure render time for single point addition
+    // Apply time window after adding point if we're redrawing
     if (redraw) {
+      this.applyTimeWindow();
+      
+      // Measure render time for single point addition
       const endTime = performance.now();
       this.lastRenderTime = Math.round(endTime - startTime);
     }

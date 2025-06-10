@@ -104,6 +104,18 @@ interface StreamingMetrics {
               step="1"
             />
           </div>
+
+          <div class="control-group">
+            <label>Time Window (minutes):</label>
+            <input
+              type="number"
+              [(ngModel)]="timeWindowMinutes"
+              min="1"
+              max="120"
+              step="1"
+              (change)="onTimeWindowChange()"
+            />
+          </div>
         </div>
 
         <div class="control-row">
@@ -154,6 +166,7 @@ interface StreamingMetrics {
                 #echartsComponent
                 [dataset]="currentDataset"
                 [height]="getChartHeight()"
+                [timeWindowMinutes]="timeWindowMinutes"
               >
               </app-echarts-benchmark>
             </div>
@@ -174,6 +187,7 @@ interface StreamingMetrics {
                 #lightweightChartsComponent
                 [dataset]="currentDataset"
                 [height]="getChartHeight()"
+                [timeWindowMinutes]="timeWindowMinutes"
               >
               </app-lightweight-charts-benchmark>
             </div>
@@ -191,6 +205,7 @@ interface StreamingMetrics {
                 #lightningChartsComponent
                 [dataset]="currentDataset"
                 [height]="getChartHeight()"
+                [timeWindowMinutes]="timeWindowMinutes"
               >
               </app-lightning-charts-benchmark>
             </div>
@@ -208,6 +223,7 @@ interface StreamingMetrics {
                 #chartjsComponent
                 [dataset]="currentDataset"
                 [height]="getChartHeight()"
+                [timeWindowMinutes]="timeWindowMinutes"
               >
               </app-chartjs-benchmark>
             </div>
@@ -229,6 +245,7 @@ interface StreamingMetrics {
                 [data]="currentDataset?.points || []"
                 [height]="getChartHeight()"
                 [title]="'Highcharts - Real-time Streaming'"
+                [timeWindowMinutes]="timeWindowMinutes"
               >
               </app-highcharts>
             </div>
@@ -432,6 +449,12 @@ interface StreamingMetrics {
         overflow: hidden;
       }
 
+      .chart-controls {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 10px;
+      }
+
       .metrics-dashboard {
         background: white;
         padding: 20px;
@@ -514,6 +537,7 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
   pointsPerSecond = 2;
   testDuration = 60;
   numberOfCharts = 9;
+  timeWindowMinutes = 30; // Default to 30 minutes
 
   // State
   isStreaming = false;
@@ -558,6 +582,32 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
     // Reset and reinitialize when chart changes
     this.stopStreaming();
     this.initializeBaselineData();
+  }
+
+  // Update Chart.js time window when setting changes
+  onChartjsTimeWindowChange(): void {
+    if (
+      this.selectedChart === 'chartjs' &&
+      this.chartjsComponents &&
+      this.chartjsComponents.length > 0
+    ) {
+      this.chartjsComponents.forEach((chart) => {
+        chart.timeWindowMinutes = this.timeWindowMinutes;
+        chart.resetZoom(); // Apply the new time window immediately
+      });
+    }
+  }
+
+  // Update time window when setting changes
+  onTimeWindowChange(): void {
+    if (this.selectedChart === 'chartjs' && this.chartjsComponents && this.chartjsComponents.length > 0) {
+      this.chartjsComponents.forEach((chart) => {
+        chart.timeWindowMinutes = this.timeWindowMinutes;
+        chart.resetZoom(); // Apply the new time window immediately
+      });
+    }
+    
+    // Future: Add support for other chart types that could use the time window
   }
 
   async startStreaming(): Promise<void> {
@@ -763,7 +813,14 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
     }
   }
 
-
+  // Reset zoom for all Chart.js charts
+  resetChartjsZoom(): void {
+    if (this.chartjsComponents && this.chartjsComponents.length > 0) {
+      this.chartjsComponents.forEach((chart) => {
+        chart.resetZoom();
+      });
+    }
+  }
 
   private collectMetrics(): void {
     const memoryInfo = (performance as any).memory;

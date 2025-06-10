@@ -21,6 +21,9 @@ import { ChartStyleService } from '../services/chart-style.service';
         {{ dataset.name }} ({{ dataset.pointCount.toLocaleString() }} points)
       </div>
       <div #chartContainer class="chart" [style.height.px]="height"></div>
+      <div class="zoom-control">
+        <button (click)="resetZoom()" class="reset-zoom-btn">Reset Zoom</button>
+      </div>
     </div>
   `,
   styles: [`
@@ -30,6 +33,7 @@ import { ChartStyleService } from '../services/chart-style.service';
       border: 1px solid #ddd;
       border-radius: 8px;
       background: white;
+      position: relative;
     }
     
     .chart {
@@ -61,12 +65,35 @@ import { ChartStyleService } from '../services/chart-style.service';
       font-size: 18px;
       font-weight: 600;
     }
+    
+    .zoom-control {
+      position: absolute;
+      top: 40px;
+      right: 25px;
+      z-index: 10;
+    }
+    
+    .reset-zoom-btn {
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+    
+    .reset-zoom-btn:hover {
+      opacity: 1;
+    }
   `]
 })
 export class D3ChartComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
   @Input() dataset: BenchmarkDataset | null = null;
   @Input() height: number = 400;
+  @Input() timeWindowMinutes: number = 30; // Default to 30 minutes
   
   private svg: any = null;
   private xScale: any = null;
@@ -74,6 +101,9 @@ export class D3ChartComponent implements OnInit, AfterViewInit, OnChanges, OnDes
   private xAxis: any = null;
   private yAxis: any = null;
   private line: any = null;
+  private brush: any = null;
+  private zoom: any = null;
+  private originalXDomain: [number, number] | null = null;
   lastMetrics: any = null;
   
   constructor(
@@ -100,6 +130,11 @@ export class D3ChartComponent implements OnInit, AfterViewInit, OnChanges, OnDes
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['dataset'] && this.svg && this.dataset) {
       this.renderChart();
+    }
+    
+    if (changes['timeWindowMinutes'] && this.svg && this.dataset) {
+      // Apply the new time window
+      this.applyTimeWindow();
     }
   }
   
@@ -141,6 +176,13 @@ export class D3ChartComponent implements OnInit, AfterViewInit, OnChanges, OnDes
       .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
     
+    // Create clip path to prevent drawing outside chart area
+    this.svg.append('defs').append('clipPath')
+      .attr('id', 'd3-chart-clip')
+      .append('rect')
+        .attr('width', width)
+        .attr('height', height);
+    
     // Create scales
     this.xScale = d3.scaleTime()
       .range([0, width]);
@@ -176,6 +218,52 @@ export class D3ChartComponent implements OnInit, AfterViewInit, OnChanges, OnDes
       .y(d => this.yScale(d.value))
       .curve(d3.curveLinear);
     
+    // Create a chart group for the line path that will be clipped
+    this.svg.append('g')
+      .attr('class', 'chart-group')
+      .attr('clip-path', 'url(#d3-chart-clip)');
+    
+    // Set up zoom behavior
+    this.zoom = d3.zoom()
+      .scaleExtent([1, 32])
+      .extent([[0, 0], [width, height]])
+      .translateExtent([[0, -Infinity], [width, Infinity]])
+      .on('zoom', (event) => {
+        // Update the x-scale
+        const newXScale = event.transform.rescaleX(this.xScale);
+        
+        // Update the x-axis with the new scale
+        this.xAxis.call(
+          d3.axisBottom(newXScale)
+            .tickFormat((d: any) => styleConfig.formatting.timeFormat(new Date(d)))
+        );
+        
+        // Update x-grid
+        this.svg.select('.x-grid')
+          .call(
+            d3.axisBottom(newXScale)
+              .tickSize(-this.yScale.range()[0])
+              .tickFormat(() => '')
+          );
+        
+        // Update the line path with the new scale
+        this.svg.select('.line-path')
+          .attr('d', d3.line<any>()
+            .x(d => newXScale(d.time))
+            .y(d => this.yScale(d.value))
+            .curve(d3.curveLinear)
+          );
+      });
+    
+    // Add zoom rectangle
+    this.svg.append('rect')
+      .attr('class', 'zoom-rect')
+      .attr('width', width)
+      .attr('height', height)
+      .attr('fill', 'none')
+      .attr('pointer-events', 'all')
+      .call(this.zoom);
+    
     const initTime = this.performanceService.endTimer(initStartTime);
     
     if (this.dataset) {
@@ -199,7 +287,10 @@ export class D3ChartComponent implements OnInit, AfterViewInit, OnChanges, OnDes
     const data = this.dataset.points;
     
     // Update scales domains
-    this.xScale.domain(d3.extent(data, d => d.time) as [number, number]);
+    const xExtent = d3.extent(data, d => d.time) as [number, number];
+    this.xScale.domain(xExtent);
+    this.originalXDomain = [...xExtent]; // Store original domain for reset
+    
     this.yScale.domain([
       d3.min(data, d => d.value) as number * 0.95,
       d3.max(data, d => d.value) as number * 1.05
@@ -234,8 +325,9 @@ export class D3ChartComponent implements OnInit, AfterViewInit, OnChanges, OnDes
           .tickFormat(() => '')
       );
     
-    // Update line path
-    const linePath = this.svg.selectAll('.line-path')
+    // Update line path - add to the clipped group
+    const chartGroup = this.svg.select('.chart-group');
+    const linePath = chartGroup.selectAll('.line-path')
       .data([data]);
     
     linePath.enter()
@@ -268,17 +360,8 @@ export class D3ChartComponent implements OnInit, AfterViewInit, OnChanges, OnDes
     
     const tooltipMerge = tooltipEnter.merge(tooltip as any);
     
-    // Create transparent overlay for mouse events
-    const overlay = this.svg.selectAll('.overlay')
-      .data([null]);
-      
-    overlay.enter()
-      .append('rect')
-      .attr('class', 'overlay')
-      .attr('width', this.xScale.range()[1])
-      .attr('height', this.yScale.range()[0])
-      .attr('fill', 'none')
-      .attr('pointer-events', 'all')
+    // Handle tooltip on the zoom rect
+    this.svg.select('.zoom-rect')
       .on('mousemove', (event: MouseEvent) => {
         const mouseX = d3.pointer(event, this.svg.node())[0];
         const x0 = this.xScale.invert(mouseX);
@@ -316,6 +399,9 @@ export class D3ChartComponent implements OnInit, AfterViewInit, OnChanges, OnDes
         this.svg.selectAll('.highlight-point').remove();
       });
     
+    // Apply time window after initial render
+    this.applyTimeWindow();
+    
     const renderTime = this.performanceService.endTimer(renderStartTime);
     
     // Record performance metrics
@@ -329,6 +415,50 @@ export class D3ChartComponent implements OnInit, AfterViewInit, OnChanges, OnDes
     };
     
     this.performanceService.recordMetrics(this.lastMetrics);
+  }
+  
+  // Apply the time window to show only the last X minutes of data
+  private applyTimeWindow(): void {
+    if (!this.svg || !this.dataset || !this.dataset.points.length || !this.zoom) {
+      return;
+    }
+    
+    // Get the data points
+    const data = this.dataset.points;
+    const lastTimestamp = data[data.length - 1].time;
+    const firstTimestamp = data[0].time;
+    
+    // Calculate the time window
+    const timeWindowMs = this.timeWindowMinutes * 60 * 1000;
+    const minTime = Math.max(lastTimestamp - timeWindowMs, firstTimestamp);
+    
+    // Calculate the transform to apply to zoom to the time window
+    const width = this.xScale.range()[1] - this.xScale.range()[0];
+    
+    // Calculate the scale factor
+    const fullTimeRange = this.originalXDomain![1] - this.originalXDomain![0];
+    const windowTimeRange = lastTimestamp - minTime;
+    const scale = fullTimeRange / windowTimeRange;
+    
+    // Calculate the translation to center the window
+    const minX = this.xScale(minTime);
+    const translateX = -minX * scale;
+    
+    // Create the transform
+    const transform = d3.zoomIdentity
+      .scale(scale)
+      .translate(translateX / scale, 0);
+    
+    // Apply the transform to zoom the chart
+    this.svg.select('.zoom-rect')
+      .call(this.zoom.transform, transform);
+  }
+  
+  // Reset zoom to the time window view
+  resetZoom(): void {
+    if (this.svg && this.zoom) {
+      this.applyTimeWindow();
+    }
   }
   
   updateChart(newDataset: BenchmarkDataset): void {

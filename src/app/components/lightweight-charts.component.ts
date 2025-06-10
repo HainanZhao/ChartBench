@@ -21,6 +21,9 @@ import { ChartStyleService } from '../services/chart-style.service';
         {{ dataset.name }} ({{ dataset.pointCount.toLocaleString() }} points)
       </div>
       <div #chartContainer class="chart" [style.height.px]="height"></div>
+      <div class="zoom-control">
+        <button (click)="resetZoom()" class="reset-zoom-btn">Reset Zoom</button>
+      </div>
     </div>
   `,
   styles: [`
@@ -30,6 +33,7 @@ import { ChartStyleService } from '../services/chart-style.service';
       border: 1px solid #ddd;
       border-radius: 8px;
       background: white;
+      position: relative;
     }
     
     .chart {
@@ -61,12 +65,35 @@ import { ChartStyleService } from '../services/chart-style.service';
       font-size: 18px;
       font-weight: 600;
     }
+    
+    .zoom-control {
+      position: absolute;
+      top: 40px;
+      right: 25px;
+      z-index: 10;
+    }
+    
+    .reset-zoom-btn {
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+    
+    .reset-zoom-btn:hover {
+      opacity: 1;
+    }
   `]
 })
 export class LightweightChartsComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
   @Input() dataset: BenchmarkDataset | null = null;
   @Input() height: number = 400;
+  @Input() timeWindowMinutes: number = 30; // Default to 30 minutes
   
   private chart: IChartApi | null = null;
   private lineSeries: ISeriesApi<'Line'> | null = null;
@@ -90,6 +117,11 @@ export class LightweightChartsComponent implements OnInit, OnDestroy, OnChanges 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['dataset'] && this.chart && this.dataset) {
       this.renderChart();
+    }
+    
+    if (changes['timeWindowMinutes'] && this.chart && this.dataset) {
+      // Apply the new time window
+      this.applyTimeWindow();
     }
   }
   
@@ -173,8 +205,8 @@ export class LightweightChartsComponent implements OnInit, OnDestroy, OnChanges 
     
     this.lineSeries.setData(data);
     
-    // Fit content to show all data
-    this.chart?.timeScale().fitContent();
+    // Apply time window
+    this.applyTimeWindow();
     
     const renderTime = this.performanceService.endTimer(renderStartTime);
     
@@ -188,6 +220,36 @@ export class LightweightChartsComponent implements OnInit, OnDestroy, OnChanges 
     };
     
     this.performanceService.recordMetrics(this.lastMetrics);
+  }
+  
+  // Apply the time window to show only the last X minutes of data
+  private applyTimeWindow(): void {
+    if (!this.chart || !this.dataset || !this.dataset.points.length) {
+      return;
+    }
+    
+    const points = this.dataset.points;
+    const lastTimestamp = points[points.length - 1].time;
+    const firstTimestamp = points[0].time;
+    
+    // Calculate the time window in milliseconds
+    const timeWindowMs = this.timeWindowMinutes * 60 * 1000;
+    const minTime = Math.max(lastTimestamp - timeWindowMs, firstTimestamp);
+    
+    // Convert to the format expected by LightweightCharts (seconds for UTCTimestamp)
+    const minTimeUTC = Math.floor(minTime / 1000) as UTCTimestamp;
+    const lastTimestampUTC = Math.floor(lastTimestamp / 1000) as UTCTimestamp;
+    
+    // Set the visible time range
+    this.chart.timeScale().setVisibleRange({
+      from: minTimeUTC,
+      to: lastTimestampUTC
+    });
+  }
+  
+  // Reset zoom to the time window view
+  resetZoom(): void {
+    this.applyTimeWindow();
   }
   
   updateChart(newDataset: BenchmarkDataset): void {

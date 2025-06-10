@@ -1,6 +1,6 @@
 import { Component, ElementRef, Input, OnDestroy, OnInit, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Chart } from 'chart.js/auto';
+import { Chart, ChartTypeRegistry } from 'chart.js/auto';
 import { BenchmarkDataset } from '../services/time-series-data.service';
 import { PerformanceService } from '../services/performance.service';
 import 'chartjs-adapter-date-fns';
@@ -26,6 +26,9 @@ Chart.register(zoomPlugin);
       </div>
       <div style="position: relative; width: 100%; height: 400px;">
         <canvas #chartCanvas></canvas>
+        <div class="zoom-control">
+          <button (click)="resetZoom()" class="reset-zoom-btn">Reset Zoom</button>
+        </div>
       </div>
     </div>
   `,
@@ -36,6 +39,7 @@ Chart.register(zoomPlugin);
       border: 1px solid #ddd;
       border-radius: 8px;
       background: white;
+      position: relative;
     }
     
     .chart-info {
@@ -57,12 +61,35 @@ Chart.register(zoomPlugin);
       margin: 0 0 10px 0;
       color: #333;
     }
+    
+    .zoom-control {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      z-index: 10;
+    }
+    
+    .reset-zoom-btn {
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+    
+    .reset-zoom-btn:hover {
+      opacity: 1;
+    }
   `]
 })
 export class ChartjsComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('chartCanvas', { static: true }) chartCanvas!: ElementRef<HTMLCanvasElement>;
   @Input() dataset: BenchmarkDataset | null = null;
   @Input() height: number = 400;
+  @Input() timeWindowMinutes: number = 30; // Default to 30 minutes
   
   private chart: Chart | null = null;
   lastMetrics: any = null;
@@ -83,6 +110,11 @@ export class ChartjsComponent implements OnInit, OnDestroy, OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['dataset'] && this.chart && this.dataset) {
       this.renderChart();
+    }
+    
+    if (changes['timeWindowMinutes'] && this.chart && this.dataset) {
+      // If time window changed, update the view
+      this.resetZoom();
     }
   }
   
@@ -177,8 +209,8 @@ export class ChartjsComponent implements OnInit, OnDestroy, OnChanges {
             }
           }
         }
-      }
-    });
+        }
+      });
     
     const initTime = this.performanceService.endTimer(initStartTime);
     
@@ -231,6 +263,18 @@ export class ChartjsComponent implements OnInit, OnDestroy, OnChanges {
             xScale.time.unit = timeUnit;
           }
         }
+        
+        // Set the default view to show only the last timeWindowMinutes of data
+        if (this.chart.options.scales && 'x' in this.chart.options.scales) {
+          const timeWindowMs = this.timeWindowMinutes * 60 * 1000;
+          const minTime = Math.max(lastTimestamp - timeWindowMs, firstTimestamp);
+          
+          const xScale = this.chart.options.scales['x'] as any;
+          if (xScale) {
+            xScale.min = minTime;
+            xScale.max = lastTimestamp;
+          }
+        }
       }
       
       // Update chart data
@@ -265,6 +309,33 @@ export class ChartjsComponent implements OnInit, OnDestroy, OnChanges {
     
     if (this.chart) {
       const updateStartTime = this.performanceService.startTimer();
+      
+      // Check if we need to update the view window to keep showing the last 30 minutes
+      if (this.dataset && this.dataset.points.length > 0) {
+        const points = this.dataset.points;
+        const lastTimestamp = points[points.length - 1].time;
+        
+        // Only auto-scroll if we're showing the most recent data
+        // (meaning the right edge of the current view is close to the previous last timestamp)
+        if (this.chart.options.scales && 'x' in this.chart.options.scales) {
+          const xScale = this.chart.options.scales['x'] as any;
+          if (xScale && xScale.max) {
+            const currentMaxTime = xScale.max;
+            const previousLastPoint = this.dataset.points[this.dataset.points.length - 2]; // Second to last point
+            
+            if (previousLastPoint && Math.abs(currentMaxTime - previousLastPoint.time) < 1000) {
+              // We're viewing recent data, auto-scroll to keep showing the time window
+              const timeWindowMs = this.timeWindowMinutes * 60 * 1000;
+              const firstTimestamp = points[0].time;
+              const minTime = Math.max(lastTimestamp - timeWindowMs, firstTimestamp);
+              
+              xScale.min = minTime;
+              xScale.max = lastTimestamp;
+            }
+          }
+        }
+      }
+      
       this.renderChart();
       const updateTime = this.performanceService.endTimer(updateStartTime);
       
@@ -273,6 +344,34 @@ export class ChartjsComponent implements OnInit, OnDestroy, OnChanges {
       }
     } else {
       console.error('Chart.js: No chart instance available for update');
+    }
+  }
+  
+  // Reset zoom to initial view (based on timeWindowMinutes)
+  resetZoom(): void {
+    if (this.chart && this.dataset && this.dataset.points.length > 0) {
+      // Get first and last timestamps
+      const points = this.dataset.points;
+      const firstTimestamp = points[0].time;
+      const lastTimestamp = points[points.length - 1].time;
+      
+      // Calculate the time window
+      const timeWindowMs = this.timeWindowMinutes * 60 * 1000;
+      const minTime = Math.max(lastTimestamp - timeWindowMs, firstTimestamp);
+      
+      // Reset to the configured time window view instead of the full dataset
+      if (this.chart.options.scales && 'x' in this.chart.options.scales) {
+        const xScale = this.chart.options.scales['x'] as any;
+        if (xScale) {
+          xScale.min = minTime;
+          xScale.max = lastTimestamp;
+          this.chart.update('none');
+          return;
+        }
+      }
+      
+      // Fallback to standard resetZoom if we can't set the specific time range
+      this.chart.resetZoom();
     }
   }
 }

@@ -67,6 +67,7 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
   @Input() dataset: BenchmarkDataset | null = null;
   @Input() height: number = 400;
+  @Input() timeWindowMinutes: number = 30; // Default to 30 minutes
   
   private chart: echarts.ECharts | null = null;
   lastMetrics: any = null;
@@ -94,6 +95,11 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['dataset'] && this.chart && this.dataset) {
       this.renderChart();
+    }
+    
+    if (changes['timeWindowMinutes'] && this.chart && this.dataset) {
+      // Apply the new time window
+      this.applyTimeWindow();
     }
   }
   
@@ -236,6 +242,9 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
     
     this.chart.setOption(option);
     
+    // Apply time window after setting options
+    this.applyTimeWindow();
+    
     const renderTime = this.performanceService.endTimer(renderStartTime);
     
     // Record performance metrics
@@ -250,6 +259,29 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
     
     this.performanceService.recordMetrics(this.lastMetrics);
     
+  }
+  
+  // Apply the time window setting to show only the specified time range
+  private applyTimeWindow(): void {
+    if (!this.chart || !this.dataset || !this.dataset.points.length) {
+      return;
+    }
+    
+    const points = this.dataset.points;
+    const lastTimestamp = points[points.length - 1].time;
+    const firstTimestamp = points[0].time;
+    
+    // Calculate the time window in milliseconds
+    const timeWindowMs = this.timeWindowMinutes * 60 * 1000;
+    const minTime = Math.max(lastTimestamp - timeWindowMs, firstTimestamp);
+    
+    // Update the x-axis range
+    this.chart.setOption({
+      xAxis: {
+        min: minTime,
+        max: lastTimestamp
+      }
+    });
   }
   
   updateChart(newDataset: BenchmarkDataset): void {
