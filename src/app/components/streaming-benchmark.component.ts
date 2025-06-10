@@ -116,23 +116,26 @@ interface StreamingMetrics {
           </div>
 
           <div class="control-group button-group">
-            <button
-              (click)="startStreaming()"
-              [disabled]="isStreaming"
-              class="btn btn-primary"
-            >
-              {{ isStreaming ? 'Streaming...' : 'Start Streaming Test' }}
-            </button>
-            <button
-              (click)="stopStreaming()"
-              [disabled]="!isStreaming"
-              class="btn btn-secondary"
-            >
-              Stop Test
-            </button>
-            <button (click)="clearMetrics()" class="btn btn-secondary">
-              Clear Metrics
-            </button>
+            <label>&nbsp;</label> <!-- Invisible label for alignment -->
+            <div class="button-container">
+              <button
+                (click)="startStreaming()"
+                [disabled]="isStreaming"
+                class="btn btn-primary"
+              >
+                {{ isStreaming ? 'Streaming...' : 'Start Streaming Test' }}
+              </button>
+              <button
+                (click)="stopStreaming()"
+                [disabled]="!isStreaming"
+                class="btn btn-secondary"
+              >
+                Stop Test
+              </button>
+              <button (click)="clearMetrics()" class="btn btn-secondary">
+                Clear Metrics
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -362,23 +365,33 @@ interface StreamingMetrics {
       }
 
       .button-group {
-        flex-direction: row !important;
-        gap: 10px !important;
-        align-items: flex-end;
+        flex-direction: column !important;
+        gap: 5px !important;
+        align-items: stretch;
       }
 
       .button-group label {
-        display: none;
+        font-weight: bold;
+        color: #333;
+        font-size: 12px;
+        visibility: hidden; /* Keep for spacing but hide the actual text */
+      }
+
+      .button-container {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
       }
 
       .btn {
-        padding: 10px 20px;
+        padding: 8px 16px;
         border: none;
         border-radius: 4px;
         cursor: pointer;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: bold;
         transition: background-color 0.2s;
+        white-space: nowrap;
       }
 
       .btn-primary {
@@ -513,6 +526,15 @@ interface StreamingMetrics {
       @media (max-width: 768px) {
         .control-row {
           flex-direction: column;
+        }
+
+        .button-container {
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .btn {
+          width: 100%;
         }
 
         .status {
@@ -704,11 +726,10 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
     switch (this.selectedChart) {
       case 'echarts':
         if (this.echartsComponents && this.echartsComponents.length > 0) {
-          // Update all chart instances
-          const promises = this.echartsComponents.map((chart) =>
-            chart.updateChart(this.currentDataset!)
+          // Use efficient single-point addition instead of full data update
+          this.echartsComponents.forEach((chart) =>
+            chart.addPoint(newPoint, true)
           );
-          await Promise.all(promises);
         }
         break;
       case 'lightweight':
@@ -716,10 +737,10 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
           this.lightweightChartsComponents &&
           this.lightweightChartsComponents.length > 0
         ) {
-          const promises = this.lightweightChartsComponents.map((chart) =>
-            chart.updateChart(this.currentDataset!)
+          // Use efficient single-point addition instead of full data update
+          this.lightweightChartsComponents.forEach((chart) =>
+            chart.addPoint(newPoint, true)
           );
-          await Promise.all(promises);
         }
         break;
       case 'lightning':
@@ -727,18 +748,18 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
           this.lightningChartsComponents &&
           this.lightningChartsComponents.length > 0
         ) {
-          const promises = this.lightningChartsComponents.map((chart) =>
-            chart.updateChart(this.currentDataset!)
+          // Use efficient single-point addition instead of full data update
+          this.lightningChartsComponents.forEach((chart) =>
+            chart.addPoint(newPoint, true)
           );
-          await Promise.all(promises);
         }
         break;
       case 'chartjs':
         if (this.chartjsComponents && this.chartjsComponents.length > 0) {
-          const promises = this.chartjsComponents.map((chart) =>
-            chart.updateChart(this.currentDataset!)
+          // Use efficient single-point addition instead of full data update
+          this.chartjsComponents.forEach((chart) =>
+            chart.addPoint(newPoint, true)
           );
-          await Promise.all(promises);
         }
         break;
       case 'highcharts':
@@ -751,10 +772,10 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
         break;
       case 'd3':
         if (this.d3ChartComponents && this.d3ChartComponents.length > 0) {
-          const promises = this.d3ChartComponents.map((chart) =>
-            chart.updateChart(this.currentDataset!)
+          // Use efficient single-point addition instead of full data update
+          this.d3ChartComponents.forEach((chart) =>
+            chart.addPoint(newPoint, true)
           );
-          await Promise.all(promises);
         }
         break;
     }

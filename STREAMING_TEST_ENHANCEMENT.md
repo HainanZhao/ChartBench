@@ -64,7 +64,7 @@ Complete UI overhaul for better usability and individual component testing.
 ```typescript
 // Configuration options
 selectedChart = 'echarts';          // Individual chart selection
-baselinePoints = 10000;            // Starting data points
+baselinePoints = 50000;            // Starting data points
 pointsPerSecond = 2;              // Real-time data rate
 testDuration = 60;                 // Test duration in seconds
 ```

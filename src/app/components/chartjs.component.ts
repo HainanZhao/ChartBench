@@ -355,6 +355,65 @@ export class ChartjsComponent implements OnInit, OnDestroy, OnChanges {
       console.error('Chart.js: No chart instance available for update');
     }
   }
+
+  addPoint(point: { time: number, value: number }, redraw: boolean = true): void {
+    if (!this.chart || !this.dataset) {
+      return;
+    }
+
+    const startTime = this.performanceService.startTimer();
+    
+    // Add point to dataset
+    this.dataset.points.push(point);
+    this.dataset.pointCount = this.dataset.points.length;
+    
+    // Get the chart data
+    const chartData = this.chart.data;
+    if (chartData.datasets && chartData.datasets[0]) {
+      // Add the new point to the chart data
+      const newPoint = { x: point.time, y: point.value };
+      (chartData.datasets[0].data as any[]).push(newPoint);
+      
+      // For performance, limit the number of points displayed
+      const maxPoints = 50000; // Adjust based on performance needs
+      const dataArray = chartData.datasets[0].data as any[];
+      if (dataArray.length > maxPoints) {
+        dataArray.shift(); // Remove oldest point
+        this.dataset.points.shift(); // Keep dataset in sync
+        this.dataset.pointCount = this.dataset.points.length;
+      }
+      
+      // Update chart efficiently with minimal animation
+      if (redraw) {
+        // Auto-scroll the view to follow new data if we're viewing recent data
+        if (this.chart.options.scales && 'x' in this.chart.options.scales) {
+          const xScale = this.chart.options.scales['x'] as any;
+          if (xScale && xScale.max) {
+            const currentMaxTime = xScale.max;
+            // If we're close to the current max time, auto-scroll
+            if (Math.abs(currentMaxTime - point.time) < 5000) { // Within 5 seconds
+              const timeWindowMs = this.timeWindowMinutes * 60 * 1000;
+              const points = this.dataset.points;
+              const firstTimestamp = points[0].time;
+              const minTime = Math.max(point.time - timeWindowMs, firstTimestamp);
+              
+              xScale.min = minTime;
+              xScale.max = point.time;
+            }
+          }
+        }
+        
+        this.chart.update('none'); // Update without animation for better performance
+      }
+    }
+    
+    const endTime = this.performanceService.endTimer(startTime);
+    
+    // Update metrics with single point addition time
+    if (this.lastMetrics) {
+      this.lastMetrics.updateTime = endTime;
+    }
+  }
   
   // Reset zoom to initial view (based on timeWindowMinutes)
   resetZoom(): void {

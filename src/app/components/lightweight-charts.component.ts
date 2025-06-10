@@ -283,4 +283,30 @@ export class LightweightChartsComponent implements OnInit, OnDestroy, OnChanges 
       }
     }
   }
+
+  addPoint(point: { time: number, value: number }, redraw: boolean = true): void {
+    if (!this.lineSeries || !this.dataset) {
+      return;
+    }
+
+    const startTime = this.performanceService.startTimer();
+    
+    // Add point to dataset
+    this.dataset.points.push(point);
+    this.dataset.pointCount = this.dataset.points.length;
+    
+   const lightweightPoint: LineData = {
+        time: (point.time / 1000) as UTCTimestamp, // Convert to seconds
+        value: point.value
+      };
+      
+      this.lineSeries.update(lightweightPoint);
+    
+    const endTime = this.performanceService.endTimer(startTime);
+    
+    // Update metrics with single point addition time
+    if (this.lastMetrics) {
+      this.lastMetrics.updateTime = endTime;
+    }
+  }
 }

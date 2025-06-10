@@ -352,6 +352,53 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
     }
   }
 
+  addPoint(point: { time: number, value: number }, redraw: boolean = true): void {
+    if (!this.chart || !this.dataset) {
+      return;
+    }
+
+    const startTime = this.performanceService.startTimer();
+    
+    // Add point to dataset
+    this.dataset.points.push(point);
+    this.dataset.pointCount = this.dataset.points.length;
+    
+    // Get the current series data
+    const currentOption = this.chart.getOption() as any;
+    const currentData = (currentOption.series?.[0]?.data || []) as Array<[number, number]>;
+    
+    // Add the new point to the data array
+    const newPoint: [number, number] = [point.time, point.value];
+    currentData.push(newPoint);
+    
+    // For performance, limit the number of points displayed
+    const maxPoints = 50000; // Adjust based on performance needs
+    if (currentData.length > maxPoints) {
+      currentData.shift(); // Remove oldest point
+      this.dataset.points.shift(); // Keep dataset in sync
+      this.dataset.pointCount = this.dataset.points.length;
+    }
+    
+    // Update only the series data without re-rendering everything
+    this.chart.setOption({
+      series: [{
+        data: currentData
+      }]
+    }, false); // false = merge option instead of replacing
+    
+    // Apply time window if redraw is requested
+    if (redraw) {
+      this.applyTimeWindow();
+    }
+    
+    const endTime = this.performanceService.endTimer(startTime);
+    
+    // Update metrics with single point addition time
+    if (this.lastMetrics) {
+      this.lastMetrics.updateTime = endTime;
+    }
+  }
+
   resetZoom(): void {
     if (!this.chart) {
       return;
