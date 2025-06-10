@@ -113,7 +113,7 @@ export class TimeSeriesDataService {
       { name: 'Extra Large (25K points)', pointCount: 25000 },
       { name: 'Massive (50K points)', pointCount: 50000 },
       { name: 'Extreme (100K points)', pointCount: 100000 },
-      { name: 'Extreme (250K points)', pointCount: 250000 }
+      { name: 'Ultra (200K points)', pointCount: 200000 }
     ];
   }
 }

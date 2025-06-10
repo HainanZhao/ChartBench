@@ -439,7 +439,7 @@ export class BenchmarkDashboardComponent implements OnInit {
     this.progressPercentage = 0;
     this.performanceService.clearResults();
 
-    const testSizes = [1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000];
+    const testSizes = [1000, 5000, 10000, 25000, 50000, 100000, 200000];
     const ITERATIONS_PER_SIZE = 3;
     const totalTests = testSizes.length * ITERATIONS_PER_SIZE;
     let testCount = 0;
