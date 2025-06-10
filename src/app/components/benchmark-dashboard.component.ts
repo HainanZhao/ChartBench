@@ -21,11 +21,6 @@ import { ChartjsComponent } from '../components/chartjs.component';
   ],
   template: `
     <div class="dashboard">
-      <header class="dashboard-header">
-        <h1>Chart Library Performance Benchmark</h1>
-        <p>Compare the rendering performance of popular chart libraries for time series data</p>
-      </header>
-
       <div class="controls">
         <div class="control-group">
           <label for="datasetSelect">Dataset Size:</label>
