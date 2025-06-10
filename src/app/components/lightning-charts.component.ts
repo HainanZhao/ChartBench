@@ -94,6 +94,7 @@ export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
   @Input() dataset: BenchmarkDataset | null = null;
   @Input() height: number = 400;
+  @Input() timeWindowMinutes: number = 30; // Default to 30 minutes
   
   private readonly LIGHTNING_CHART_LICENSE = '0002-n0i9AP8MN/ezP+gV3RZRzNiQvQvBKwBJvTnrFTHppybuCwWuickxBJV+q3qyoeEBGSE4hS0aeo3pySDywrb/iIsl-MEUCIAiJOU3BrUq71LqSlRAIFAI0dKK05qBRIJYHFmBoOoIHAiEA4Y55O1QpeuEkiuVktPGLauOHc1TzxNu85/vz/eNscz8=';
   private chart: ChartXY | null = null;
@@ -119,6 +120,11 @@ export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
     if (changes['dataset'] && this.chart && this.dataset) {
       this.renderChart();
     }
+    
+    if (changes['timeWindowMinutes'] && this.chart && this.dataset) {
+      // Apply the new time window using native API
+      this.applyTimeWindow();
+    }
   }
   
   private initChart(): void {
@@ -139,7 +145,7 @@ export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
     this.chart.setTitle('');
     this.chart.setPadding({ left: 60, right: 20, top: 20, bottom: 40 });
     
-    // Configure axes
+    // Configure axes with better time formatting
     this.xAxis = this.chart.getDefaultAxisX()
       .setTitle('Time')
       .setTickStrategy(AxisTickStrategies.Time)
@@ -184,9 +190,12 @@ export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
       };
     }
     
-    // Let Lightning Charts do its default fitting
+    // Let Lightning Charts do its default fitting initially
     this.chart?.getDefaultAxisX().fit();
     this.chart?.getDefaultAxisY().fit();
+    
+    // Note: Time window can be applied manually using "Reset View" button
+    // Automatic application removed to prevent shaking during streaming
     
     const renderTime = this.performanceService.endTimer(renderStartTime);
     
@@ -202,12 +211,27 @@ export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
     this.performanceService.recordMetrics(this.lastMetrics);
   }
   
-  // Reset zoom to show all data
-  resetZoom(): void {
-    if (this.xAxis && this.originalXRange) {
-      // Reset to show all data (full dataset)
-      this.xAxis.setInterval({ start: this.originalXRange.min, end: this.originalXRange.max });
+  // Apply time window using Lightning Charts native APIs
+  private applyTimeWindow(): void {
+    if (!this.xAxis || !this.dataset || !this.dataset.points.length) {
+      return;
     }
+    
+    const points = this.dataset.points;
+    const lastTimestamp = points[points.length - 1].time;
+    const firstTimestamp = points[0].time;
+    
+    // Calculate the time window based on actual data timestamps
+    const timeWindowMs = this.timeWindowMinutes * 60 * 1000;
+    const minTime = Math.max(lastTimestamp - timeWindowMs, firstTimestamp);
+    
+    // Use Lightning Charts native setInterval for smooth time window adjustment
+    this.xAxis.setInterval({ start: minTime, end: lastTimestamp });
+  }
+  
+  // Reset zoom to the time window view
+  resetZoom(): void {
+    this.applyTimeWindow();
   }
 
   resetToFullView(): void {
@@ -257,6 +281,10 @@ export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
         max: point.time
       };
     }
+    
+    // Don't automatically update time window during streaming to prevent shaking
+    // The user can manually use "Reset View" to apply the time window
+    // This ensures smooth streaming without constant view adjustments
     
     const endTime = this.performanceService.endTimer(startTime);
     

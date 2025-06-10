@@ -206,6 +206,7 @@ interface StreamingMetrics {
                 #lightningChartsComponent
                 [dataset]="currentDataset"
                 [height]="getChartHeight()"
+                [timeWindowMinutes]="timeWindowMinutes"
               >
               </app-lightning-charts-benchmark>
             </div>
