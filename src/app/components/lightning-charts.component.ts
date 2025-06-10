@@ -263,18 +263,9 @@ export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
     this.dataset.points.push(point);
     this.dataset.pointCount = this.dataset.points.length;
     
-    // For performance, limit the number of points
-    const maxPoints = 50000;
-    if (this.dataset.points.length > maxPoints) {
-      this.dataset.points.shift(); // Remove oldest point
-      this.dataset.pointCount = this.dataset.points.length;
-      // For Lightning Charts, we need to update all data when removing points
-      this.renderChart();
-    } else {
-      // Add single point efficiently
-      const newPoint = { x: point.time, y: point.value };
-      this.lineSeries.add(newPoint);
-    }
+    // Add single point efficiently
+    const newPoint = { x: point.time, y: point.value };
+    this.lineSeries.add(newPoint);
     
     const endTime = this.performanceService.endTimer(startTime);
     

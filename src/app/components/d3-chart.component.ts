@@ -505,18 +505,9 @@ export class D3ChartComponent implements OnInit, AfterViewInit, OnChanges, OnDes
     this.dataset.points.push(point);
     this.dataset.pointCount = this.dataset.points.length;
     
-    // For performance, limit the number of points
-    const maxPoints = 50000;
-    if (this.dataset.points.length > maxPoints) {
-      this.dataset.points.shift(); // Remove oldest point
-      this.dataset.pointCount = this.dataset.points.length;
-      // For D3, we need to update all data when removing points
-      this.renderChart();
-    } else {
-      // For D3, incremental updates are complex, so we'll do a full re-render
-      // This could be optimized further with more complex D3 data binding
-      this.renderChart();
-    }
+    // For D3, incremental updates are complex, so we'll do a full re-render
+    // This could be optimized further with more complex D3 data binding
+    this.renderChart();
     
     const endTime = this.performanceService.endTimer(startTime);
     

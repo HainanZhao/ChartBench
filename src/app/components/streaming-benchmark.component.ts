@@ -563,7 +563,7 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
 
   // Configuration
   selectedChart = 'echarts';
-  baselinePoints = 10000;
+  baselinePoints = 50000;
   pointsPerSecond = 2;
   testDuration = 60;
   numberOfCharts = 9;

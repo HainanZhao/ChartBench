@@ -374,15 +374,6 @@ export class ChartjsComponent implements OnInit, OnDestroy, OnChanges {
       const newPoint = { x: point.time, y: point.value };
       (chartData.datasets[0].data as any[]).push(newPoint);
       
-      // For performance, limit the number of points displayed
-      const maxPoints = 50000; // Adjust based on performance needs
-      const dataArray = chartData.datasets[0].data as any[];
-      if (dataArray.length > maxPoints) {
-        dataArray.shift(); // Remove oldest point
-        this.dataset.points.shift(); // Keep dataset in sync
-        this.dataset.pointCount = this.dataset.points.length;
-      }
-      
       // Update chart efficiently with minimal animation
       if (redraw) {
         // Auto-scroll the view to follow new data if we're viewing recent data

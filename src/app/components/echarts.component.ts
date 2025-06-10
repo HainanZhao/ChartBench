@@ -363,33 +363,58 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
     this.dataset.points.push(point);
     this.dataset.pointCount = this.dataset.points.length;
     
-    // Get the current series data
-    const currentOption = this.chart.getOption() as any;
-    const currentData = (currentOption.series?.[0]?.data || []) as Array<[number, number]>;
-    
-    // Add the new point to the data array
+    // Use ECharts' efficient appendData method for streaming
+    // This avoids getting the full option and just appends the new point
     const newPoint: [number, number] = [point.time, point.value];
-    currentData.push(newPoint);
     
-    // For performance, limit the number of points displayed
-    const maxPoints = 50000; // Adjust based on performance needs
-    if (currentData.length > maxPoints) {
-      currentData.shift(); // Remove oldest point
-      this.dataset.points.shift(); // Keep dataset in sync
-      this.dataset.pointCount = this.dataset.points.length;
-    }
-    
-    // Update only the series data without re-rendering everything
-    this.chart.setOption({
+    // Calculate time window for auto-scrolling if needed
+    let updateOption: any = {
       series: [{
-        data: currentData
+        data: null // We'll use appendData instead
       }]
-    }, false); // false = merge option instead of replacing
+    };
     
-    // Apply time window if redraw is requested
     if (redraw) {
-      this.applyTimeWindow();
+      // Calculate time window for smooth auto-scroll
+      const points = this.dataset.points;
+      const lastTimestamp = points[points.length - 1].time;
+      const firstTimestamp = points[0].time;
+      const timeWindowMs = this.timeWindowMinutes * 60 * 1000;
+      const minTime = Math.max(lastTimestamp - timeWindowMs, firstTimestamp);
+      
+      // Calculate percentages for smooth scrolling
+      const totalTimeRange = lastTimestamp - firstTimestamp;
+      if (totalTimeRange > 0) {
+        const startPercent = Math.max(0, ((minTime - firstTimestamp) / totalTimeRange) * 100);
+        const endPercent = 100;
+        
+        updateOption.dataZoom = [
+          {
+            start: startPercent,
+            end: endPercent
+          },
+          {
+            start: startPercent,
+            end: endPercent
+          }
+        ];
+      }
     }
+    
+    // Use the efficient method: append data and update zoom in single call
+    // Remove the null data property since we're using appendData
+    delete updateOption.series[0].data;
+    
+    // Update with minimal re-render
+    if (Object.keys(updateOption.dataZoom || {}).length > 0) {
+      this.chart.setOption(updateOption, true, false); // merge=true, silent=false
+    }
+    
+    // Append the single point efficiently - this is the key to no flashing
+    this.chart.appendData({
+      seriesIndex: 0,
+      data: [newPoint]
+    });
     
     const endTime = this.performanceService.endTimer(startTime);
     
