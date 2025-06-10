@@ -323,9 +323,26 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
     const startPercent = Math.max(0, ((minTime - firstTimestamp) / totalTimeRange) * 100);
     const endPercent = 100;
     
-    // Update the dataZoom to show the time window, but don't set hard axis limits
-    // This allows users to zoom out beyond the initial time window
-    this.chart.setOption({
+    // Find the Y-axis range for the visible time window
+    const visiblePoints = points.filter(point => point.time >= minTime && point.time <= lastTimestamp);
+    let yMin = Infinity;
+    let yMax = -Infinity;
+    
+    if (visiblePoints.length > 0) {
+      visiblePoints.forEach(point => {
+        yMin = Math.min(yMin, point.value);
+        yMax = Math.max(yMax, point.value);
+      });
+      
+      // Add some padding to Y-axis (5% on each side)
+      const yRange = yMax - yMin;
+      const padding = yRange * 0.05;
+      yMin = yMin - padding;
+      yMax = yMax + padding;
+    }
+    
+    // Update the dataZoom and Y-axis to show the time window with appropriate Y scaling
+    const option: any = {
       dataZoom: [
         {
           start: startPercent,
@@ -336,7 +353,17 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
           end: endPercent
         }
       ]
-    });
+    };
+    
+    // Set Y-axis range if we have valid data
+    if (visiblePoints.length > 0 && isFinite(yMin) && isFinite(yMax)) {
+      option.yAxis = {
+        min: yMin,
+        max: yMax
+      };
+    }
+    
+    this.chart.setOption(option);
   }
   
   updateChart(newDataset: BenchmarkDataset): void {
@@ -410,11 +437,18 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
       this.chart.setOption(updateOption, true, false); // merge=true, silent=false
     }
     
-    // Append the single point efficiently - this is the key to no flashing
-    this.chart.appendData({
-      seriesIndex: 0,
-      data: [newPoint]
-    });
+    // Use the more reliable setOption approach instead of appendData to avoid assertion errors
+    // Get current series data and append the new point
+    const currentOption = this.chart.getOption() as any;
+    const currentData = (currentOption.series?.[0]?.data || []) as Array<[number, number]>;
+    currentData.push(newPoint);
+    
+    // Update just the series data efficiently
+    this.chart.setOption({
+      series: [{
+        data: currentData
+      }]
+    }, true, true); // merge=true, silent=true for smoothest performance
     
     const endTime = this.performanceService.endTimer(startTime);
     
@@ -439,7 +473,7 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
       return;
     }
     
-    // Reset the dataZoom to show all data (full dataset)
+    // Reset the dataZoom to show all data (full dataset) and reset Y-axis to auto-scale
     this.chart.setOption({
       dataZoom: [
         {
@@ -450,7 +484,11 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
           start: 0,
           end: 100
         }
-      ]
+      ],
+      yAxis: {
+        min: null, // Reset to auto-scale
+        max: null  // Reset to auto-scale
+      }
     });
   }
 }

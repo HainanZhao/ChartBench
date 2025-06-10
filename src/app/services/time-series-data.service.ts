@@ -18,7 +18,7 @@ export class TimeSeriesDataService {
   
   generateTimeSeriesData(pointCount: number, name: string = 'Dataset'): BenchmarkDataset {
     const points: TimeSeriesPoint[] = [];
-    const startTime = Date.now() - (pointCount * 60000); // Start from pointCount minutes ago
+    const startTime = Date.now() - (pointCount * 1000); // Start from pointCount minutes ago
     
     // Multiple wave components for more realistic patterns
     const baseValue = 100;
@@ -39,7 +39,7 @@ export class TimeSeriesDataService {
     const batchSize = pointCount > 100000 ? 10000 : pointCount;
     
     for (let i = 0; i < pointCount; i++) {
-      const time = startTime + (i * 60000); // 1 minute intervals
+      const time = startTime + (i * 1000); // 1 second intervals
       const progress = i / pointCount; // 0 to 1
       
       // Generate complex wave pattern

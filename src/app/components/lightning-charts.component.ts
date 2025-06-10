@@ -1,4 +1,4 @@
-import { Component, ElementRef, Input, OnDestroy, OnInit, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
+import { Component, ElementRef, Input, OnDestroy, OnInit, OnChanges, SimpleChanges, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { lightningChart, LightningChart, LineSeries, ChartXY, Axis, AxisTickStrategies, AxisScrollStrategies } from '@lightningchart/lcjs';
 import { BenchmarkDataset } from '../services/time-series-data.service';
@@ -90,7 +90,7 @@ import { PerformanceService } from '../services/performance.service';
     }
   `]
 })
-export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
+export class LightningChartsComponent implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
   @Input() dataset: BenchmarkDataset | null = null;
   @Input() height: number = 400;
@@ -107,6 +107,16 @@ export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
   
   ngOnInit(): void {
     this.initChart();
+  }
+  
+  ngAfterViewInit(): void {
+    // Apply time window after the view is fully initialized
+    // This ensures Lightning Charts has completed its initial rendering
+    setTimeout(() => {
+      if (this.dataset && this.xAxis) {
+        this.applyTimeWindow();
+      }
+    }, 100);
   }
   
   ngOnDestroy(): void {
@@ -187,12 +197,9 @@ export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
       };
     }
     
-    // Fit chart to data
+    // Let Lightning Charts do its default fitting
     this.chart?.getDefaultAxisX().fit();
     this.chart?.getDefaultAxisY().fit();
-    
-    // Apply time window
-    this.applyTimeWindow();
     
     const renderTime = this.performanceService.endTimer(renderStartTime);
     
@@ -217,12 +224,31 @@ export class LightningChartsComponent implements OnInit, OnDestroy, OnChanges {
     const points = this.dataset.points;
     const lastTimestamp = points[points.length - 1].time;
     const firstTimestamp = points[0].time;
+    const totalDataSpanMs = lastTimestamp - firstTimestamp;
     
-    // Calculate the time window
-    const timeWindowMs = this.timeWindowMinutes * 60 * 1000;
+    // Calculate the time window - but don't make it smaller than what makes sense for the data
+    const requestedWindowMs = this.timeWindowMinutes * 60 * 1000;
+    
+    // If the requested window is larger than the total data span, show all data
+    // If the total data span is very large (> 2 hours), use the requested window
+    // Otherwise, show a reasonable portion (at least 25% of the data)
+    let timeWindowMs: number;
+    
+    if (requestedWindowMs >= totalDataSpanMs) {
+      // Requested window is larger than data - show all data
+      timeWindowMs = totalDataSpanMs;
+    } else if (totalDataSpanMs > 2 * 60 * 60 * 1000) {
+      // Data spans more than 2 hours - use requested window
+      timeWindowMs = requestedWindowMs;
+    } else {
+      // Data spans less than 2 hours - show at least 25% of the data or requested window, whichever is larger
+      const minReasonableWindow = totalDataSpanMs * 0.25;
+      timeWindowMs = Math.max(requestedWindowMs, minReasonableWindow);
+    }
+    
     const minTime = Math.max(lastTimestamp - timeWindowMs, firstTimestamp);
     
-    // Set the X axis interval to show only the time window
+    // Set the X axis interval to show the calculated time window
     this.xAxis.setInterval({ start: minTime, end: lastTimestamp });
   }
   
