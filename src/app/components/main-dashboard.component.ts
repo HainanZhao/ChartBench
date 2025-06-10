@@ -80,6 +80,9 @@ type TestType = 'static' | 'streaming';
           <div class="library-item">
             <strong>Chart.js</strong> - Simple yet flexible JavaScript charting
           </div>
+          <div class="library-item">
+            <strong>Highcharts</strong> - Feature-rich charting library for web applications
+          </div>
         </div>
 
         <div class="features">

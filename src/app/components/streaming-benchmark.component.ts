@@ -8,7 +8,6 @@ import { LightweightChartsComponent } from './lightweight-charts.component';
 import { LightningChartsComponent } from './lightning-charts.component';
 import { ChartjsComponent } from './chartjs.component';
 import { HighchartsComponent } from './highcharts.component';
-import { AGChartsComponent } from './ag-charts.component';
 
 interface StreamingMetrics {
   timestamp: number;
@@ -28,8 +27,7 @@ interface StreamingMetrics {
     LightweightChartsComponent,
     LightningChartsComponent,
     ChartjsComponent,
-    HighchartsComponent,
-    AGChartsComponent
+    HighchartsComponent
   ],
   template: `
     <div class="streaming-benchmark">
@@ -45,7 +43,6 @@ interface StreamingMetrics {
               <option value="lightning">LightningChart</option>
               <option value="chartjs">Chart.js</option>
               <option value="highcharts">Highcharts</option>
-              <option value="agcharts">AG Charts</option>
             </select>
           </div>
           
@@ -140,15 +137,7 @@ interface StreamingMetrics {
           </app-highcharts>
         </div>
 
-        <!-- AG Charts -->
-        <div *ngIf="selectedChart === 'agcharts'" class="chart-wrapper">
-          <app-ag-charts
-            #agChartsComponent
-            [data]="currentDataset?.points || []"
-            [height]="400"
-            [title]="'AG Charts - Real-time Streaming'">
-          </app-ag-charts>
-        </div>
+
       </div>
 
       <div class="metrics-dashboard" *ngIf="streamingMetrics.length > 0">
@@ -355,7 +344,7 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
   @ViewChild('lightningChartsComponent') lightningChartsComponent?: LightningChartsComponent;
   @ViewChild('chartjsComponent') chartjsComponent?: ChartjsComponent;
   @ViewChild('highchartsComponent') highchartsComponent?: HighchartsComponent;
-  @ViewChild('agChartsComponent') agChartsComponent?: AGChartsComponent;
+
   @ViewChild('metricsCanvas') metricsCanvas?: any;
 
   // Configuration
@@ -516,12 +505,6 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
           this.highchartsComponent.addPoint(newPoint, true);
         }
         break;
-      case 'agcharts':
-        if (this.agChartsComponent) {
-          // Use efficient single-point addition instead of full data update
-          this.agChartsComponent.addPoint(newPoint, true);
-        }
-        break;
     }
   }
 
@@ -555,11 +538,6 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
           this.highchartsComponent.updateData(this.currentDataset.points);
         }
         break;
-      case 'agcharts':
-        if (this.agChartsComponent) {
-          this.agChartsComponent.updateData(this.currentDataset.points);
-        }
-        break;
     }
   }
 
@@ -584,9 +562,6 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
         break;
       case 'highcharts':
         renderTime = this.highchartsComponent?.lastRenderTime || 0;
-        break;
-      case 'agcharts':
-        renderTime = this.agChartsComponent?.lastRenderTime || 0;
         break;
     }
 

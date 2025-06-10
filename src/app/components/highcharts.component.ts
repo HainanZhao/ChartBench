@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnDestroy, ElementRef, ViewChild, PLATFORM_ID, Inject } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, OnChanges, SimpleChanges, ElementRef, ViewChild, PLATFORM_ID, Inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
 import { TimeSeriesPoint } from '../services/time-series-data.service';
@@ -69,7 +69,7 @@ export interface HighchartsRenderingResult {
     }
   `]
 })
-export class HighchartsComponent implements OnInit, OnDestroy {
+export class HighchartsComponent implements OnInit, OnDestroy, OnChanges {
   @Input() data: TimeSeriesPoint[] = [];
   @Input() height: number = 400;
   @Input() title: string = 'Highcharts Performance Test';
@@ -100,6 +100,21 @@ export class HighchartsComponent implements OnInit, OnDestroy {
     if (this.chart) {
       this.chart.destroy();
       this.chart = null;
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['data'] && changes['data'].currentValue && this.isBrowser) {
+      // When data input changes (for static benchmark), update the chart
+      this.data = changes['data'].currentValue;
+      this.pointCount = this.data.length;
+      
+      if (this.chart) {
+        this.updateStaticChart();
+      } else {
+        // If no chart exists yet, create one
+        this.renderChart();
+      }
     }
   }
 
@@ -250,11 +265,40 @@ export class HighchartsComponent implements OnInit, OnDestroy {
 
   updateData(newData: TimeSeriesPoint[]): void {
     this.data = newData;
-    if (this.isBrowser && this.chart) {
-      // For streaming updates, use efficient point addition instead of full re-render
-      this.updateDataStreaming(newData);
-    } else if (this.isBrowser) {
-      // Initial render
+    this.pointCount = newData.length;
+    
+    if (this.isBrowser) {
+      // For static benchmark tests, do a complete data replacement
+      this.updateStaticChart();
+    }
+  }
+
+  private updateStaticChart(): void {
+    const startTime = performance.now();
+    
+    if (!this.chart) {
+      // Create chart if it doesn't exist
+      this.renderChart();
+      return;
+    }
+
+    try {
+      // Prepare data for Highcharts
+      const chartData = this.data.map(point => [point.time, point.value]);
+      
+      // Update the series data directly for static benchmark
+      if (this.chart.series && this.chart.series.length > 0) {
+        this.chart.series[0].setData(chartData, true); // true = redraw immediately
+      }
+      
+      const endTime = performance.now();
+      this.lastRenderTime = Math.round(endTime - startTime);
+      
+      console.log(`Highcharts static update: ${this.lastRenderTime}ms for ${this.pointCount} points`);
+      
+    } catch (error) {
+      console.error('Highcharts static update error:', error);
+      // Fallback to full recreation if update fails
       this.renderChart();
     }
   }

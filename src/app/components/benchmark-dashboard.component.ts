@@ -8,7 +8,6 @@ import { LightweightChartsComponent } from '../components/lightweight-charts.com
 import { LightningChartsComponent } from '../components/lightning-charts.component';
 import { ChartjsComponent } from '../components/chartjs.component';
 import { HighchartsComponent } from '../components/highcharts.component';
-import { AGChartsComponent } from '../components/ag-charts.component';
 
 @Component({
   selector: 'app-benchmark-dashboard',
@@ -20,8 +19,7 @@ import { AGChartsComponent } from '../components/ag-charts.component';
     LightweightChartsComponent,
     LightningChartsComponent,
     ChartjsComponent,
-    HighchartsComponent,
-    AGChartsComponent
+    HighchartsComponent
   ],
   template: `
     <div class="dashboard">
@@ -87,14 +85,7 @@ import { AGChartsComponent } from '../components/ag-charts.component';
             [title]="'Highcharts - ' + (currentDataset.name || '')">
           </app-highcharts>
         </div>
-        <div class="chart-item">
-          <app-ag-charts
-            #agChartsComponent
-            [data]="currentDataset.points || []"
-            [height]="400"
-            [title]="'AG Charts - ' + (currentDataset.name || '')">
-          </app-ag-charts>
-        </div>
+
       </div>
 
       <div class="results-section" *ngIf="benchmarkResults.length > 0">
@@ -415,7 +406,7 @@ export class BenchmarkDashboardComponent implements OnInit {
   @ViewChild('lightningChartsComponent') lightningChartsComponent!: LightningChartsComponent;
   @ViewChild('chartjsComponent') chartjsComponent!: ChartjsComponent;
   @ViewChild('highchartsComponent') highchartsComponent!: HighchartsComponent;
-  @ViewChild('agChartsComponent') agChartsComponent!: AGChartsComponent;
+
 
   datasetPresets = this.timeSeriesDataService.getPresetDatasets();
   selectedDatasetSize = 1000;
@@ -514,22 +505,14 @@ export class BenchmarkDashboardComponent implements OnInit {
         await this.delay(100);
 
         if (this.highchartsComponent) {
-          const result = await this.highchartsComponent.renderChart();
-          if (result.renderTime > 0) {
+          this.highchartsComponent.updateData(testDataset.points);
+          if (this.highchartsComponent.lastRenderTime > 0) {
             if (!iterationResults['Highcharts']) iterationResults['Highcharts'] = [];
-            iterationResults['Highcharts'].push(result.renderTime);
+            iterationResults['Highcharts'].push(this.highchartsComponent.lastRenderTime);
           }
         }
 
         await this.delay(100);
-
-        if (this.agChartsComponent) {
-          const result = await this.agChartsComponent.renderChart();
-          if (result.renderTime > 0) {
-            if (!iterationResults['AG Charts']) iterationResults['AG Charts'] = [];
-            iterationResults['AG Charts'].push(result.renderTime);
-          }
-        }
       }
 
       // Calculate and record averages for each chart library
@@ -591,9 +574,6 @@ export class BenchmarkDashboardComponent implements OnInit {
     }
     if (this.highchartsComponent) {
       this.highchartsComponent.updateData(dataset.points);
-    }
-    if (this.agChartsComponent) {
-      this.agChartsComponent.updateData(dataset.points);
     }
   }
 
