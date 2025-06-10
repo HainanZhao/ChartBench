@@ -45,6 +45,8 @@ export interface HighchartsRenderingResult {
     .chart {
       width: 100%;
       min-height: 400px;
+      overflow: hidden;
+      position: relative;
     }
     
     .chart-info {
@@ -189,10 +191,66 @@ export class HighchartsComponent implements OnInit, OnDestroy, OnChanges {
           spacing: [10, 10, 10, 10],
           // Add zoom and pan capabilities
           zooming: {
-            type: 'x'
+            type: 'x',
+            mouseWheel: {
+              enabled: false // Disabled because we handle it manually in events
+            },
+            resetButton: {
+              theme: {
+                style: {
+                  display: 'none' // Hide the built-in reset button since we have our own
+                }
+              }
+            }
           },
           panning: {
             enabled: true
+          },
+          events: {
+            load: function() {
+              // Handle mouse wheel events for zooming
+              const chart = this;
+              const chartContainer = this.container;
+              
+              chartContainer.addEventListener('wheel', function(e: WheelEvent) {
+                // Only prevent default if we're actually going to zoom
+                const rect = chartContainer.getBoundingClientRect();
+                const isOverChart = e.clientX >= rect.left && e.clientX <= rect.right && 
+                                   e.clientY >= rect.top && e.clientY <= rect.bottom;
+                
+                if (isOverChart) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
+                  // Get the current axis extremes
+                  const xAxis = chart.xAxis[0];
+                  const extremes = xAxis.getExtremes();
+                  const range = extremes.max - extremes.min;
+                  
+                  // Calculate zoom factor based on wheel delta
+                  const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9;
+                  const newRange = range * zoomFactor;
+                  
+                  // Get mouse position relative to chart
+                  const mouseX = e.clientX - rect.left;
+                  const plotLeft = chart.plotLeft;
+                  const plotWidth = chart.plotWidth;
+                  
+                  if (mouseX >= plotLeft && mouseX <= plotLeft + plotWidth) {
+                    // Convert mouse position to data value
+                    const mouseTime = xAxis.toValue(mouseX);
+                    
+                    // Calculate new extremes centered on mouse position
+                    const mouseRatio = (mouseTime - extremes.min) / range;
+                    const newMin = mouseTime - (newRange * mouseRatio);
+                    const newMax = mouseTime + (newRange * (1 - mouseRatio));
+                    
+                    // Apply the zoom
+                    xAxis.setExtremes(newMin, newMax, true, false);
+                  }
+                }
+              }, { passive: false });
+            }
           }
         },
         title: {
