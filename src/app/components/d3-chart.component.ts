@@ -113,6 +113,7 @@ export class D3ChartComponent implements OnInit, AfterViewInit, OnChanges, OnDes
   private brush: any = null;
   private zoom: any = null;
   private originalXDomain: [number, number] | null = null;
+  private originalYDomain: [number, number] | null = null;
   lastMetrics: any = null;
   
   constructor(
@@ -300,10 +301,12 @@ export class D3ChartComponent implements OnInit, AfterViewInit, OnChanges, OnDes
     this.xScale.domain(xExtent);
     this.originalXDomain = [...xExtent]; // Store original domain for reset
     
-    this.yScale.domain([
-      d3.min(data, d => d.value) as number * 0.95,
-      d3.max(data, d => d.value) as number * 1.05
-    ]);
+    const yMin = d3.min(data, d => d.value) as number * 0.95;
+    const yMax = d3.max(data, d => d.value) as number * 1.05;
+    const yExtent: [number, number] = [yMin, yMax];
+    
+    this.yScale.domain(yExtent);
+    this.originalYDomain = [...yExtent]; // Store original Y domain for reset
     
     // Format the time for the x-axis
     const formatTime = (time: Date) => {
@@ -441,6 +444,40 @@ export class D3ChartComponent implements OnInit, AfterViewInit, OnChanges, OnDes
     const timeWindowMs = this.timeWindowMinutes * 60 * 1000;
     const minTime = Math.max(lastTimestamp - timeWindowMs, firstTimestamp);
     
+    // Filter data to only points visible in the time window
+    const visibleData = data.filter(d => d.time >= minTime && d.time <= lastTimestamp);
+    
+    // Calculate Y-axis range for visible data
+    if (visibleData.length > 0) {
+      const yMin = d3.min(visibleData, d => d.value) as number;
+      const yMax = d3.max(visibleData, d => d.value) as number;
+      
+      // Add 5% padding to Y-axis range
+      const yRange = yMax - yMin;
+      const padding = yRange * 0.05;
+      
+      // Update Y scale domain to focus on visible data
+      this.yScale.domain([yMin - padding, yMax + padding]);
+      
+      // Update the Y axis
+      this.yAxis.call(d3.axisLeft(this.yScale));
+      
+      // Update grid lines
+      this.svg.select('.y-grid')
+        .call(
+          d3.axisLeft(this.yScale)
+            .tickSize(-this.xScale.range()[1])
+            .tickFormat(() => '')
+        );
+      
+      // Update the line path with new Y scale
+      if (this.line) {
+        this.svg.select('.line')
+          .datum(this.dataset.points)
+          .attr('d', this.line);
+      }
+    }
+    
     // Calculate the transform to apply to zoom to the time window
     const width = this.xScale.range()[1] - this.xScale.range()[0];
     
@@ -471,7 +508,28 @@ export class D3ChartComponent implements OnInit, AfterViewInit, OnChanges, OnDes
   }
 
   resetToFullView(): void {
-    if (this.svg && this.zoom) {
+    if (this.svg && this.zoom && this.originalYDomain) {
+      // Reset Y scale to original domain
+      this.yScale.domain(this.originalYDomain);
+      
+      // Update the Y axis
+      this.yAxis.call(d3.axisLeft(this.yScale));
+      
+      // Update grid lines
+      this.svg.select('.y-grid')
+        .call(
+          d3.axisLeft(this.yScale)
+            .tickSize(-this.xScale.range()[1])
+            .tickFormat(() => '')
+        );
+      
+      // Update the line path with original Y scale
+      if (this.line && this.dataset) {
+        this.svg.select('.line')
+          .datum(this.dataset.points)
+          .attr('d', this.line);
+      }
+      
       // Reset to show all data (full dataset)
       // Apply identity transform to show the complete original domain
       this.svg.select('.zoom-rect')
