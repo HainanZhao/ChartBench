@@ -102,8 +102,8 @@ export class LightweightChartsComponent implements OnInit, OnDestroy, OnChanges 
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
   @Input() dataset: BenchmarkDataset | null = null;
   @Input() height: number = 400;
-  @Input() timeWindowMinutes: number = 30; // Default to 30 minutes
-  
+  @Input() timeWindowMinutes: number = 10; // Default to 10 minutes
+
   private chart: IChartApi | null = null;
   private lineSeries: ISeriesApi<'Line'> | null = null;
   lastMetrics: any = null;

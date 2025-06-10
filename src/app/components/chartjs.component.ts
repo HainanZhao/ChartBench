@@ -98,8 +98,8 @@ export class ChartjsComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('chartCanvas', { static: true }) chartCanvas!: ElementRef<HTMLCanvasElement>;
   @Input() dataset: BenchmarkDataset | null = null;
   @Input() height: number = 400;
-  @Input() timeWindowMinutes: number = 30; // Default to 30 minutes
-  
+  @Input() timeWindowMinutes: number = 10; // Default to 10 minutes
+
   private chart: Chart | null = null;
   lastMetrics: any = null;
   

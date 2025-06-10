@@ -567,7 +567,7 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
   pointsPerSecond = 2;
   testDuration = 60;
   numberOfCharts = 9;
-  timeWindowMinutes = 30; // Default to 30 minutes
+  timeWindowMinutes = 10; // Default to 10 minutes
 
   // State
   isStreaming = false;

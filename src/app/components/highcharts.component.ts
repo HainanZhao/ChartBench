@@ -110,7 +110,7 @@ export class HighchartsComponent implements OnInit, OnDestroy, OnChanges {
   @Input() data: TimeSeriesPoint[] = [];
   @Input() height: number = 400;
   @Input() title: string = 'Highcharts Performance Test';
-  @Input() timeWindowMinutes: number = 30; // Default to 30 minutes
+  @Input() timeWindowMinutes: number = 10; // Default to 10 minutes
 
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
 

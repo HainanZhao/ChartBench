@@ -104,8 +104,8 @@ export class EchartsComponent implements OnInit, AfterViewInit, OnChanges, OnDes
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
   @Input() dataset: BenchmarkDataset | null = null;
   @Input() height: number = 400;
-  @Input() timeWindowMinutes: number = 30; // Default to 30 minutes
-  
+  @Input() timeWindowMinutes: number = 10; // Default to 10 minutes
+
   private chart: echarts.ECharts | null = null;
   lastMetrics: any = null;
   
