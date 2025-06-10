@@ -77,6 +77,8 @@ export class HighchartsComponent implements OnInit, OnDestroy {
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
 
   public lastRenderTime: number = 0;
+  public initialRenderTime: number = 0;
+  public lastStreamingTime: number = 0;
   public pointCount: number = 0;
   private chart: Highcharts.Chart | null = null;
   private isBrowser: boolean;
@@ -248,8 +250,85 @@ export class HighchartsComponent implements OnInit, OnDestroy {
 
   updateData(newData: TimeSeriesPoint[]): void {
     this.data = newData;
-    if (this.isBrowser) {
+    if (this.isBrowser && this.chart) {
+      // For streaming updates, use efficient point addition instead of full re-render
+      this.updateDataStreaming(newData);
+    } else if (this.isBrowser) {
+      // Initial render
       this.renderChart();
+    }
+  }
+
+  private updateDataStreaming(newData: TimeSeriesPoint[]): void {
+    if (!this.chart || !this.chart.series || this.chart.series.length === 0) {
+      // If chart doesn't exist, render from scratch
+      this.renderChart();
+      return;
+    }
+
+    const startTime = performance.now();
+    const series = this.chart.series[0];
+    const currentDataLength = series.data.length;
+    const newDataLength = newData.length;
+
+    // If we have new points to add
+    if (newDataLength > currentDataLength) {
+      // Add only the new points (streaming approach)
+      const newPoints = newData.slice(currentDataLength);
+      
+      newPoints.forEach(point => {
+        const chartPoint = [point.time, point.value];
+        // Add point without redraw (redraw = false), shift if we have too many points
+        const shouldShift = series.data.length > 10000; // Keep max 10k points for performance
+        series.addPoint(chartPoint, false, shouldShift);
+      });
+      
+      // Redraw once at the end
+      this.chart.redraw();
+      this.pointCount = newDataLength;
+      
+      // Measure and update streaming render time
+      const endTime = performance.now();
+      this.lastRenderTime = Math.round(endTime - startTime);
+      console.log(`Highcharts streaming update: added ${newPoints.length} points in ${this.lastRenderTime}ms`);
+      
+    } else if (newDataLength < currentDataLength) {
+      // Data was reset or truncated, do full re-render
+      this.renderChart();
+    } else if (newDataLength === currentDataLength && newDataLength > 0) {
+      // Same number of points - check if the last point changed (real-time update)
+      const lastNewPoint = newData[newDataLength - 1];
+      const lastChartPoint = series.data[currentDataLength - 1];
+      
+      if (lastChartPoint && 
+          (lastChartPoint.x !== lastNewPoint.time || lastChartPoint.y !== lastNewPoint.value)) {
+        // Update the last point
+        lastChartPoint.update([lastNewPoint.time, lastNewPoint.value], true, false);
+      }
+    }
+  }
+
+  addPoint(point: TimeSeriesPoint, redraw: boolean = true): void {
+    if (!this.isBrowser || !this.chart || !this.chart.series || this.chart.series.length === 0) {
+      return;
+    }
+
+    const startTime = performance.now();
+    const series = this.chart.series[0];
+    const chartPoint = [point.time, point.value];
+    
+    // Add point and optionally shift old points to maintain performance
+    const shouldShift = series.data.length > 10000;
+    series.addPoint(chartPoint, redraw, shouldShift);
+    
+    this.data.push(point);
+    this.pointCount = this.data.length;
+    
+    // Measure render time for single point addition
+    if (redraw) {
+      const endTime = performance.now();
+      this.lastRenderTime = Math.round(endTime - startTime);
+      console.log(`Highcharts addPoint: ${this.lastRenderTime}ms for point ${this.pointCount}`);
     }
   }
 

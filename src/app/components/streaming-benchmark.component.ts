@@ -465,8 +465,9 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
     const lastPoint = this.baselineData[this.baselineData.length - 1];
     const newTime = lastPoint.time + 1000; // Add 1 second
     const newValue = lastPoint.value + (Math.random() - 0.5) * 10; // Random walk
+    const newPoint = { time: newTime, value: newValue };
     
-    this.baselineData.push({ time: newTime, value: newValue });
+    this.baselineData.push(newPoint);
     this.currentPointCount++;
 
     // Update dataset
@@ -476,13 +477,52 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
       points: [...this.baselineData]
     };
 
-    // Update chart
+    // Update chart efficiently based on chart type
     const renderStart = performance.now();
-    await this.updateCurrentChart();
+    await this.updateCurrentChartStreaming(newPoint);
     const renderTime = performance.now() - renderStart;
 
     // Calculate FPS
     this.currentFPS = Math.round(1000 / Math.max(renderTime, 16.67)); // Min 60 FPS cap
+  }
+
+  private async updateCurrentChartStreaming(newPoint: { time: number, value: number }): Promise<void> {
+    if (!this.currentDataset) return;
+
+    switch (this.selectedChart) {
+      case 'echarts':
+        if (this.echartsComponent) {
+          await this.echartsComponent.updateChart(this.currentDataset);
+        }
+        break;
+      case 'lightweight':
+        if (this.lightweightChartsComponent) {
+          await this.lightweightChartsComponent.updateChart(this.currentDataset);
+        }
+        break;
+      case 'lightning':
+        if (this.lightningChartsComponent) {
+          await this.lightningChartsComponent.updateChart(this.currentDataset);
+        }
+        break;
+      case 'chartjs':
+        if (this.chartjsComponent) {
+          await this.chartjsComponent.updateChart(this.currentDataset);
+        }
+        break;
+      case 'highcharts':
+        if (this.highchartsComponent) {
+          // Use efficient single-point addition instead of full data update
+          this.highchartsComponent.addPoint(newPoint, true);
+        }
+        break;
+      case 'agcharts':
+        if (this.agChartsComponent) {
+          // Use efficient single-point addition instead of full data update
+          this.agChartsComponent.addPoint(newPoint, true);
+        }
+        break;
+    }
   }
 
   private async updateCurrentChart(): Promise<void> {
@@ -511,6 +551,7 @@ export class StreamingBenchmarkComponent implements OnInit, OnDestroy {
         break;
       case 'highcharts':
         if (this.highchartsComponent) {
+          // Use the optimized updateData method which handles streaming efficiently
           this.highchartsComponent.updateData(this.currentDataset.points);
         }
         break;
